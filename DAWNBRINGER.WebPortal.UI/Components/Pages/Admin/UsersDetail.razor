@@ -1,0 +1,314 @@
+@page "/admin/users/detail/{UserID:int}"
+
+@attribute [Authorize]
+@layout Layout.AdminLayout
+
+@inject PortalAuthenticationService AuthenticationService
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+
+<PageTitle>User @UserID - Admin - Project KONGOR</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="px-4 px-sm-6 pt-8">
+    <MudStack Spacing="4" Class="animate-fade-in">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudButton Href="/admin/users" Variant="Variant.Text" Color="Color.Default" StartIcon="Icons.Material.Filled.ArrowBack">Back</MudButton>
+            <MudText Typo="Typo.h4" Color="Color.Primary">User Details</MudText>
+        </MudStack>
+
+        @if (LoadingUser)
+        {
+            <MudStack AlignItems="AlignItems.Center" Justify="Justify.Center" Class="py-16">
+                <MudProgressCircular Size="Size.Large" Color="Color.Primary" Indeterminate="true" />
+                <MudText Typo="Typo.body1" Color="Color.Secondary" Class="mt-4">Loading user...</MudText>
+            </MudStack>
+        }
+        else if (UserDetail is null)
+        {
+            <MudAlert Severity="Severity.Error" Variant="Variant.Filled">User not found.</MudAlert>
+        }
+        else
+        {
+            <MudGrid Spacing="4">
+                <MudItem xs="12" md="6">
+                    <MudCard Class="glass-card pa-6" Elevation="0">
+                        <MudText Typo="Typo.h6" Class="mb-4">User Information</MudText>
+                        <MudStack Spacing="3">
+                            <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Email</MudText>
+                                <MudText Typo="Typo.body1">@UserDetail.EmailAddress</MudText>
+                            </MudStack>
+                            <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Role</MudText>
+                                <MudChip T="string" Size="Size.Small" Color="@(UserDetail.Role == "ADMINISTRATOR" ? Color.Error : Color.Default)" Variant="Variant.Filled">@(UserDetail.Role == "ADMINISTRATOR" ? "Administrator" : "User")</MudChip>
+                            </MudStack>
+                            <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Gold Coins</MudText>
+                                <MudText Typo="Typo.body1">@UserDetail.GoldCoins.ToString("N0")</MudText>
+                            </MudStack>
+                            <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Silver Coins</MudText>
+                                <MudText Typo="Typo.body1">@UserDetail.SilverCoins.ToString("N0")</MudText>
+                            </MudStack>
+                            <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Plinko Tickets</MudText>
+                                <MudText Typo="Typo.body1">@UserDetail.PlinkoTickets.ToString("N0")</MudText>
+                            </MudStack>
+                            <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Total Level</MudText>
+                                <MudText Typo="Typo.body1">@UserDetail.TotalLevel</MudText>
+                            </MudStack>
+                            <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Discord</MudText>
+                                <MudText Typo="Typo.body1">@(string.IsNullOrWhiteSpace(UserDetail.DiscordId) ? "-" : UserDetail.DiscordId)</MudText>
+                            </MudStack>
+                            <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Member Since</MudText>
+                                <MudText Typo="Typo.body1">@UserDetail.TimestampCreated.ToString("dd MMM yyyy")</MudText>
+                            </MudStack>
+                            <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Last Active</MudText>
+                                <MudText Typo="Typo.body1">@UserDetail.TimestampLastActive.ToString("dd MMM yyyy HH:mm")</MudText>
+                            </MudStack>
+                        </MudStack>
+                    </MudCard>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudCard Class="glass-card pa-6" Elevation="0">
+                        <MudText Typo="Typo.h6" Class="mb-4">Actions</MudText>
+                        <MudStack Spacing="3">
+                            <MudSelect T="string" Label="Change Role" Variant="Variant.Outlined" @bind-Value="NewRole">
+                                <MudSelectItem T="string" Value="@("USER")">User</MudSelectItem>
+                                <MudSelectItem T="string" Value="@("ADMINISTRATOR")">Administrator</MudSelectItem>
+                            </MudSelect>
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="HandleUpdateRole" Disabled="UpdatingRole" StartIcon="Icons.Material.Filled.Save">
+                                @if (UpdatingRole)
+                                {
+                                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                                }
+                                Update Role
+                            </MudButton>
+                            <MudDivider Class="my-2" />
+                            @if (HasDisabledAccounts)
+                            {
+                                <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="HandleUnsuspend" Disabled="ProcessingSuspend" StartIcon="Icons.Material.Filled.LockOpen">
+                                    Unsuspend All Accounts
+                                </MudButton>
+                            }
+                            else
+                            {
+                                <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="HandleSuspend" Disabled="ProcessingSuspend" StartIcon="Icons.Material.Filled.Lock">
+                                    Suspend All Accounts
+                                </MudButton>
+                            }
+                        </MudStack>
+                    </MudCard>
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudCard Class="glass-card pa-6" Elevation="0">
+                        <MudText Typo="Typo.h6" Class="mb-4">Accounts (@UserDetail.Accounts.Count)</MudText>
+                        <MudTable Items="@UserDetail.Accounts" Hover="true" Elevation="0">
+                            <HeaderContent>
+                                <MudTh>ID</MudTh>
+                                <MudTh>Name</MudTh>
+                                <MudTh>Type</MudTh>
+                                <MudTh>Main</MudTh>
+                                <MudTh>Clan</MudTh>
+                                <MudTh>Level</MudTh>
+                                <MudTh>Created</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="ID">@context.ID</MudTd>
+                                <MudTd DataLabel="Name">
+                                    <MudLink Href="@("/admin/accounts/" + context.ID)" Underline="Underline.Hover">@context.Name</MudLink>
+                                </MudTd>
+                                <MudTd DataLabel="Type">@context.AccountType</MudTd>
+                                <MudTd DataLabel="Main">
+                                    @if (context.IsMain)
+                                    {
+                                        <MudIcon Icon="Icons.Material.Filled.Star" Color="Color.Warning" Size="Size.Small" />
+                                    }
+                                </MudTd>
+                                <MudTd DataLabel="Clan">
+                                    @if (!string.IsNullOrWhiteSpace(context.ClanName))
+                                    {
+                                        <MudText>@($"[{context.ClanTag}]{context.ClanName}")</MudText>
+                                    }
+                                    else
+                                    {
+                                        <MudText>-</MudText>
+                                    }
+                                </MudTd>
+                                <MudTd DataLabel="Level">@context.AscensionLevel</MudTd>
+                                <MudTd DataLabel="Created">@context.TimestampCreated.ToString("dd MMM yyyy")</MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                    </MudCard>
+                </MudItem>
+            </MudGrid>
+        }
+    </MudStack>
+</MudContainer>
+
+@code {
+    [Parameter]
+    public int UserID { get; set; }
+
+    private bool LoadingUser { get; set; } = true;
+    private AdminUserDetailResponse? UserDetail { get; set; }
+    private string NewRole { get; set; } = "USER";
+    private bool UpdatingRole { get; set; }
+    private bool ProcessingSuspend { get; set; }
+
+    private bool HasDisabledAccounts => UserDetail?.Accounts.Any(a => a.AccountType == "Disabled") ?? false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadUserAsync();
+        }
+    }
+
+    private async Task LoadUserAsync()
+    {
+        LoadingUser = true;
+
+        try
+        {
+            AuthenticationState authState = await AuthenticationService.GetAuthenticationStateAsync();
+            if (authState.User.Identity?.IsAuthenticated != true)
+            {
+                NavigationManager.NavigateTo("/login");
+                return;
+            }
+
+            HttpClient client = AuthenticationService.CreateAuthenticatedClient();
+            HttpResponseMessage response = await client.GetAsync($"/Admin/Users/{UserID}");
+
+            if (response.StatusCode is HttpStatusCode.OK)
+            {
+                UserDetail = await response.Content.ReadFromJsonAsync<AdminUserDetailResponse>();
+                if (UserDetail is not null)
+                {
+                    NewRole = UserDetail.Role;
+                }
+            }
+            else if (response.StatusCode is HttpStatusCode.NotFound)
+            {
+                Snackbar.Add("User not found.", Severity.Warning);
+            }
+            else if (response.StatusCode is HttpStatusCode.Unauthorized)
+            {
+                NavigationManager.NavigateTo("/login");
+            }
+            else
+            {
+                Snackbar.Add("Failed to load user.", Severity.Error);
+            }
+        }
+        catch (HttpRequestException)
+        {
+            Snackbar.Add("Unable to reach the server.", Severity.Error);
+        }
+        finally
+        {
+            LoadingUser = false;
+        }
+    }
+
+    private async Task HandleUpdateRole()
+    {
+        UpdatingRole = true;
+
+        try
+        {
+            HttpClient client = AuthenticationService.CreateAuthenticatedClient();
+            var payload = new { Role = NewRole };
+            HttpResponseMessage response = await client.PatchAsJsonAsync($"/Admin/Users/{UserID}/Role", payload);
+
+            if (response.StatusCode is HttpStatusCode.NoContent)
+            {
+                Snackbar.Add("Role updated successfully.", Severity.Success);
+                await LoadUserAsync();
+            }
+            else
+            {
+                string error = await response.Content.ReadAsStringAsync();
+                Snackbar.Add(error, Severity.Error);
+            }
+        }
+        catch (HttpRequestException)
+        {
+            Snackbar.Add("Unable to reach the server.", Severity.Error);
+        }
+        finally
+        {
+            UpdatingRole = false;
+        }
+    }
+
+    private async Task HandleSuspend()
+    {
+        ProcessingSuspend = true;
+
+        try
+        {
+            HttpClient client = AuthenticationService.CreateAuthenticatedClient();
+            var payload = new { Action = "SUSPEND" };
+            HttpResponseMessage response = await client.PatchAsJsonAsync($"/Admin/Users/{UserID}/Status", payload);
+
+            if (response.StatusCode is HttpStatusCode.NoContent)
+            {
+                Snackbar.Add("User suspended.", Severity.Success);
+                await LoadUserAsync();
+            }
+            else
+            {
+                string error = await response.Content.ReadAsStringAsync();
+                Snackbar.Add(error, Severity.Error);
+            }
+        }
+        catch (HttpRequestException)
+        {
+            Snackbar.Add("Unable to reach the server.", Severity.Error);
+        }
+        finally
+        {
+            ProcessingSuspend = false;
+        }
+    }
+
+    private async Task HandleUnsuspend()
+    {
+        ProcessingSuspend = true;
+
+        try
+        {
+            HttpClient client = AuthenticationService.CreateAuthenticatedClient();
+            var payload = new { Action = "UNSUSPEND" };
+            HttpResponseMessage response = await client.PatchAsJsonAsync($"/Admin/Users/{UserID}/Status", payload);
+
+            if (response.StatusCode is HttpStatusCode.NoContent)
+            {
+                Snackbar.Add("User unsuspended.", Severity.Success);
+                await LoadUserAsync();
+            }
+            else
+            {
+                string error = await response.Content.ReadAsStringAsync();
+                Snackbar.Add(error, Severity.Error);
+            }
+        }
+        catch (HttpRequestException)
+        {
+            Snackbar.Add("Unable to reach the server.", Severity.Error);
+        }
+        finally
+        {
+            ProcessingSuspend = false;
+        }
+    }
+}

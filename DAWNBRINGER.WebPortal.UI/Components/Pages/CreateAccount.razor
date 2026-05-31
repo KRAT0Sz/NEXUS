@@ -1,0 +1,379 @@
+@page "/account/register/{Token}"
+
+@inject PortalAuthenticationService AuthenticationService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+
+@using Microsoft.AspNetCore.WebUtilities
+
+<PageTitle>Create Account - Project KONGOR</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="px-4 py-12">
+    <MudStack Justify="Justify.Center" AlignItems="AlignItems.Center">
+        @* Logo / Hero Area *@
+        <div class="register-hero animate-fade-in">
+            <MudIcon Icon="@(IsDiscordRegistration ? Icons.Custom.Brands.Discord : Icons.Material.Filled.PersonAdd)" Size="Size.Large" Class="register-hero-icon" />
+            <MudText Typo="Typo.h4" Class="register-hero-title">Create Your Account</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Align="Align.Center" Class="register-hero-subtitle">
+                @if (IsDiscordRegistration)
+                {
+                    <span>Choose an account name and password to complete your Discord registration.</span>
+                }
+                else
+                {
+                    <span>Choose an account name and password to complete your registration.</span>
+                }
+            </MudText>
+        </div>
+
+        @* Step Indicator *@
+        <div class="register-steps animate-fade-in-delay-1">
+            <div class="register-step completed">
+                <div class="register-step-circle">
+                    <MudIcon Icon="@(IsDiscordRegistration ? Icons.Custom.Brands.Discord : Icons.Material.Filled.Check)" Size="Size.Small" />
+                </div>
+                <MudText Typo="Typo.caption" Class="register-step-label">@(IsDiscordRegistration ? "Discord" : "Email")</MudText>
+            </div>
+            <div class="register-step-connector completed"></div>
+            <div class="register-step active">
+                <div class="register-step-circle">
+                    <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" />
+                </div>
+                <MudText Typo="Typo.caption" Class="register-step-label">Account</MudText>
+            </div>
+        </div>
+
+        @* Form Card *@
+        <MudCard Class="glass-card-form animate-fade-in-delay-2" Elevation="0" Style="width: 100%;">
+            <MudCardContent Class="pa-6">
+                @if (string.IsNullOrWhiteSpace(Token))
+                {
+                    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.Warning">
+                        <MudText Typo="Typo.body2">
+                            Invalid or missing registration token. Please ensure you clicked the verification link sent to your email address.
+                        </MudText>
+                    </MudAlert>
+
+                    <MudStack Row="true" Justify="Justify.Center" Class="mt-4">
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Primary"
+                                   Href="/register"
+                                   StartIcon="@Icons.Material.Filled.Email">
+                            Request New Link
+                        </MudButton>
+                    </MudStack>
+                }
+                else
+                {
+                    <EditForm Model="FormModel" OnValidSubmit="HandleValidSubmit">
+                        <DataAnnotationsValidator />
+
+                        <MudStack Spacing="3">
+                            <div class="register-field-header">
+                                <MudIcon Icon="@Icons.Material.Filled.Badge" Size="Size.Small" Color="Color.Primary" Class="mr-2" />
+                                <MudText Typo="Typo.subtitle2">Account Details</MudText>
+                            </div>
+
+                            <MudTextField @bind-Value="FormModel.Name"
+                                          For="@(() => FormModel.Name)"
+                                          Label="Account Name"
+                                          HelperText="Between 4 and 12 characters. Letters, numbers, underscores, and hyphens only."
+                                          Variant="Variant.Outlined"
+                                          Adornment="Adornment.Start"
+                                          AdornmentIcon="@Icons.Material.Filled.Person"
+                                          MaxLength="12"
+                                          Counter="12" />
+
+                            <div class="register-field-header" style="margin-top: 0.5rem;">
+                                <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Small" Color="Color.Primary" Class="mr-2" />
+                                <MudText Typo="Typo.subtitle2">Password</MudText>
+                            </div>
+
+                            <MudTextField @bind-Value="FormModel.Password"
+                                          For="@(() => FormModel.Password)"
+                                          Label="Password"
+                                          HelperText="At least 8 characters long."
+                                          Variant="Variant.Outlined"
+                                          InputType="@PasswordInputType"
+                                          Adornment="Adornment.End"
+                                          AdornmentIcon="@PasswordVisibilityIcon"
+                                          OnAdornmentClick="TogglePasswordVisibility"
+                                          AdornmentAriaLabel="Toggle password visibility" />
+
+                            <MudTextField @bind-Value="FormModel.ConfirmPassword"
+                                          For="@(() => FormModel.ConfirmPassword)"
+                                          Label="Confirm Password"
+                                          HelperText="Enter the same password again for confirmation."
+                                          Variant="Variant.Outlined"
+                                          InputType="@ConfirmPasswordInputType"
+                                          Adornment="Adornment.End"
+                                          AdornmentIcon="@ConfirmPasswordVisibilityIcon"
+                                          OnAdornmentClick="ToggleConfirmPasswordVisibility"
+                                          AdornmentAriaLabel="Toggle password visibility" />
+
+                            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mt-2" Icon="@Icons.Material.Filled.Security">
+                                <MudText Typo="Typo.body2">
+                                    Your password is used to secure your account. Choose a strong, unique password that you do not use elsewhere.
+                                </MudText>
+                            </MudAlert>
+
+                            <MudStack Row="true" Justify="Justify.FlexEnd" Class="mt-4">
+                                <MudButton Variant="Variant.Outlined"
+                                           Color="Color.Default"
+                                           Href="/login"
+                                           Class="mr-2">
+                                    Back To Login
+                                </MudButton>
+                                <MudButton ButtonType="ButtonType.Submit"
+                                           Variant="Variant.Filled"
+                                           Color="Color.Primary"
+                                           Class="glow-button"
+                                           Disabled="Processing"
+                                           Size="Size.Medium">
+                                    @if (Processing)
+                                    {
+                                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                                        <MudText>Creating...</MudText>
+                                    }
+                                    else
+                                    {
+                                        <MudText>CREATE ACCOUNT</MudText>
+                                    }
+                                </MudButton>
+                            </MudStack>
+                        </MudStack>
+                    </EditForm>
+                }
+            </MudCardContent>
+        </MudCard>
+
+        @* Footer *@
+        <MudStack Row="true" Justify="Justify.Center" AlignItems="AlignItems.Center" Spacing="1" Class="animate-fade-in-delay-3 mt-4">
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Already have an account?</MudText>
+            <MudLink Href="/login" Typo="Typo.body2" Color="Color.Primary">Log in here</MudLink>
+        </MudStack>
+    </MudStack>
+</MudContainer>
+
+<style>
+    .register-hero {
+        text-align: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .register-hero-icon {
+        font-size: 3rem;
+        color: var(--kongor-primary);
+        margin-bottom: 0.5rem;
+        filter: drop-shadow(0 0 12px rgba(var(--kongor-primary-rgb), 0.4));
+    }
+
+    .register-hero-title {
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        margin-bottom: 0.5rem;
+    }
+
+    .register-hero-subtitle {
+        max-width: 360px;
+        line-height: 1.6;
+    }
+
+    .register-steps {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1.5rem;
+        gap: 0;
+    }
+
+    .register-step {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .register-step-circle {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(var(--kongor-surface-rgb), 0.6);
+        border: 2px solid rgba(var(--kongor-primary-rgb), 0.3);
+        color: rgba(var(--kongor-text-rgb), 0.6);
+        transition: all 0.3s ease;
+    }
+
+    .register-step.active .register-step-circle {
+        background: rgba(var(--kongor-primary-rgb), 0.15);
+        border-color: var(--kongor-primary);
+        color: var(--kongor-primary);
+        box-shadow: 0 0 16px rgba(var(--kongor-primary-rgb), 0.3);
+    }
+
+    .register-step.completed .register-step-circle {
+        background: rgba(var(--kongor-primary-rgb), 0.1);
+        border-color: var(--kongor-primary);
+        color: var(--kongor-primary);
+    }
+
+    .register-step-label {
+        font-size: 0.7rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: rgba(var(--kongor-text-rgb), 0.5);
+    }
+
+    .register-step.active .register-step-label,
+    .register-step.completed .register-step-label {
+        color: var(--kongor-primary);
+    }
+
+    .register-step-connector {
+        width: 48px;
+        height: 2px;
+        background: rgba(var(--kongor-primary-rgb), 0.2);
+        margin: 0 0.5rem;
+        margin-bottom: 1.2rem;
+        transition: all 0.3s ease;
+    }
+
+    .register-step-connector.completed {
+        background: var(--kongor-primary);
+        box-shadow: 0 0 8px rgba(var(--kongor-primary-rgb), 0.3);
+    }
+
+    .register-field-header {
+        display: flex;
+        align-items: center;
+        padding-bottom: 0.25rem;
+        border-bottom: 1px solid rgba(var(--kongor-primary-rgb), 0.1);
+        margin-bottom: 0.25rem;
+    }
+</style>
+
+@code {
+
+    [Parameter]
+    public string? Token { get; set; }
+
+    private bool IsDiscord { get; set; }
+
+    private string? Username { get; set; }
+
+    private bool IsDiscordRegistration => IsDiscord && !string.IsNullOrWhiteSpace(Username);
+
+    private CreateAccountFormModel FormModel { get; set; } = new ();
+
+    private bool Processing { get; set; }
+
+    private bool PasswordVisible { get; set; }
+
+    private bool ConfirmPasswordVisible { get; set; }
+
+    private InputType PasswordInputType => PasswordVisible ? InputType.Text : InputType.Password;
+
+    private InputType ConfirmPasswordInputType => ConfirmPasswordVisible ? InputType.Text : InputType.Password;
+
+    private string PasswordVisibilityIcon => PasswordVisible ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility;
+
+    private string ConfirmPasswordVisibilityIcon => ConfirmPasswordVisible ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility;
+
+    private void TogglePasswordVisibility()
+    {
+        PasswordVisible = !PasswordVisible;
+    }
+
+    private void ToggleConfirmPasswordVisibility()
+    {
+        ConfirmPasswordVisible = !ConfirmPasswordVisible;
+    }
+
+    protected override void OnInitialized()
+    {
+        Uri currentUri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+        Dictionary<string, string> queryParams = QueryHelpers.ParseQuery(currentUri.Query)
+            .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToString());
+
+        if (queryParams.TryGetValue("discord", out string? discordValue) && discordValue == "true")
+        {
+            IsDiscord = true;
+        }
+
+        if (queryParams.TryGetValue("username", out string? usernameValue))
+        {
+            Username = usernameValue;
+
+            if (IsDiscordRegistration && string.IsNullOrWhiteSpace(FormModel.Name))
+            {
+                FormModel.Name = Username;
+            }
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        Processing = true;
+
+        try
+        {
+            HttpClient client = AuthenticationService.CreateAnonymousClient();
+            Uri currentUri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+            Dictionary<string, string> queryParams = QueryHelpers.ParseQuery(currentUri.Query)
+                .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToString());
+            bool isDiscordFlow = queryParams.TryGetValue("discord", out string? discordValue) && discordValue == "true";
+
+            object request;
+            string endpoint;
+
+            if (isDiscordFlow)
+            {
+                request = new RegisterUserViaDiscordRequest(Token ?? string.Empty, FormModel.Name, FormModel.Password, FormModel.ConfirmPassword);
+                endpoint = "/Discord/Register";
+
+                HttpResponseMessage response = await client.PostAsJsonAsync(endpoint, request);
+
+                if (response.StatusCode is HttpStatusCode.Created)
+                {
+                    FormModel = new CreateAccountFormModel();
+                    Snackbar.Add("Account created successfully. Welcome to Project KONGOR!", Severity.Success);
+                    NavigationManager.NavigateTo("/login");
+                }
+                else
+                {
+                    string errorMessage = await response.Content.ReadAsStringAsync();
+                    Snackbar.Add(errorMessage, Severity.Error);
+                }
+            }
+            else
+            {
+                request = new RegisterUserAndMainAccountRequest(Token ?? string.Empty, FormModel.Name, FormModel.Password, FormModel.ConfirmPassword);
+                HttpResponseMessage response = await client.PostAsJsonAsync("/User/Register", request);
+
+                if (response.StatusCode is HttpStatusCode.Created)
+                {
+                    FormModel = new CreateAccountFormModel();
+                    Snackbar.Add("Account created successfully.", Severity.Success);
+                    NavigationManager.NavigateTo("/login");
+                }
+                else
+                {
+                    string errorMessage = await response.Content.ReadAsStringAsync();
+                    Snackbar.Add(errorMessage, Severity.Error);
+                }
+            }
+        }
+        catch (Exception)
+        {
+            Snackbar.Add("Unable to reach the server. Please try again later.", Severity.Error);
+        }
+        finally
+        {
+            Processing = false;
+        }
+    }
+}

@@ -1,0 +1,589 @@
+@page "/account"
+
+@attribute [Authorize]
+@using Microsoft.AspNetCore.WebUtilities
+@using Microsoft.Extensions.Primitives
+
+@inject PortalAuthenticationService AuthenticationService
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+
+<PageTitle>Account - Project KONGOR</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="px-4 px-sm-6 pt-8">
+    <AuthorizeView Context="authContext">
+        <Authorized>
+            @if (LoadingAccountOverview)
+            {
+                <MudStack AlignItems="AlignItems.Center" Justify="Justify.Center" Class="py-16">
+                    <MudProgressCircular Size="Size.Large" Color="Color.Primary" Indeterminate="true" />
+                    <MudText Typo="Typo.body1" Color="Color.Secondary">Loading account overview...</MudText>
+                </MudStack>
+            }
+            else if (AccountOverview is null)
+            {
+                <MudAlert Severity="Severity.Error" Variant="Variant.Filled">
+                    Unable to load account overview. Please refresh the page and try again.
+                </MudAlert>
+            }
+            else
+            {
+                @* Account Header *@
+                <MudCard Class="glass-card pa-6 mb-6 animate-fade-in" Elevation="0">
+                    <MudStack Spacing="2">
+                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Current Account</MudText>
+                            @if (authContext.User.HasClaim("user_role", "ADMINISTRATOR"))
+                            {
+                                <MudButton Href="/admin"
+                                           Variant="Variant.Outlined"
+                                           Color="Color.Primary"
+                                           Size="Size.Small"
+                                           StartIcon="@Icons.Material.Filled.AdminPanelSettings">
+                                    Admin Dashboard
+                                </MudButton>
+                            }
+                        </MudStack>
+                        <MudText Typo="Typo.h4" Class="account-name-glow" Color="Color.Primary">@DisplayName</MudText>
+
+                        <MudGrid Spacing="3" Class="mt-4">
+                            <MudItem xs="6" sm="3">
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Discord ID</MudText>
+                                    <MudText Typo="Typo.body1">@AccountOverview.EmailAddress</MudText>
+                                </MudStack>
+                            </MudItem>
+                            <MudItem xs="6" sm="3">
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">User Role</MudText>
+                                    <MudText Typo="Typo.body1">@AccountOverview.Role</MudText>
+                                </MudStack>
+                            </MudItem>
+                            <MudItem xs="6" sm="3">
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Member Since</MudText>
+                                    <MudText Typo="Typo.body1">@FormatTimestamp(AccountOverview.TimestampCreated)</MudText>
+                                </MudStack>
+                            </MudItem>
+                            <MudItem xs="6" sm="3">
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Account Level</MudText>
+                                    <MudText Typo="Typo.body1">@AccountOverview.CurrentAccountLevel</MudText>
+                                </MudStack>
+                            </MudItem>
+                        </MudGrid>
+                    </MudStack>
+                </MudCard>
+
+                @* Sibling Accounts Table *@
+                <MudCard Class="glass-card pa-6 mb-6 animate-fade-in-delay-1" Elevation="0">
+                    <MudStack Spacing="2" Class="mb-4">
+                        <MudText Typo="Typo.h6">Sibling Accounts</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            All accounts linked to this user, including clan membership.
+                        </MudText>
+                    </MudStack>
+
+                    <MudTable Items="@AccountOverview.Accounts" Hover="true" Elevation="0">
+                        <HeaderContent>
+                            <MudTh>Account Name</MudTh>
+                            <MudTh>Account Type</MudTh>
+                            <MudTh>Main Account</MudTh>
+                            <MudTh>Clan</MudTh>
+                            <MudTh>Clan Tag</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Account Name">@context.Name</MudTd>
+                            <MudTd DataLabel="Account Type">@context.AccountType.ToUpperInvariant()</MudTd>
+                            <MudTd DataLabel="Main Account">
+                                @if (context.IsMain)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Filled">Yes</MudChip>
+                                }
+                                else
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">No</MudChip>
+                                }
+                            </MudTd>
+                            <MudTd DataLabel="Clan">@GetDisplayValue(context.ClanName)</MudTd>
+                            <MudTd DataLabel="Clan Tag">@GetDisplayValue(context.ClanTag)</MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                </MudCard>
+
+                @* Discord Linking Section *@
+                <MudCard Class="glass-card pa-6 mb-6 animate-fade-in-delay-2" Elevation="0">
+                    <MudStack Spacing="2" Class="mb-4">
+                        <MudText Typo="Typo.h6">Discord Account</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            Link your Discord account to your Project KONGOR account.
+                        </MudText>
+                    </MudStack>
+
+                    @if (LoadingDiscordStatus)
+                    {
+                        <MudStack AlignItems="AlignItems.Start" Spacing="2">
+                            <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mud-width-full" />
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Checking Discord link status...</MudText>
+                        </MudStack>
+                    }
+                    else if (DiscordLinkedAccount is not null && !string.IsNullOrWhiteSpace(DiscordLinkedAccount.DiscordId))
+                    {
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Spacing="4">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                                <MudAvatar Color="Color.Primary" Size="Size.Large">
+                                    @if (string.IsNullOrWhiteSpace(DiscordLinkedAccount.DiscordAvatarHash))
+                                    {
+                                        <MudIcon Icon="@Icons.Custom.Brands.Discord" Size="Size.Large" />
+                                    }
+                                    else
+                                    {
+                                        <MudImage Src="@GetDiscordAvatarUrl(DiscordLinkedAccount.DiscordId, DiscordLinkedAccount.DiscordAvatarHash)" />
+                                    }
+                                </MudAvatar>
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.body1" Color="Color.Primary">@DiscordLinkedAccount.DiscordUsername</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        Linked @FormatTimestamp(DiscordLinkedAccount.LinkedAt.GetValueOrDefault())
+                                    </MudText>
+                                </MudStack>
+                            </MudStack>
+                            <MudButton Variant="Variant.Outlined"
+                                       Color="Color.Error"
+                                       OnClick="HandleUnlinkDiscord"
+                                       Disabled="UnlinkingDiscord"
+                                       StartIcon="@Icons.Material.Filled.LinkOff">
+                                @if (UnlinkingDiscord)
+                                {
+                                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                                    <MudText>Unlinking...</MudText>
+                                }
+                                else
+                                {
+                                    <MudText>Unlink</MudText>
+                                }
+                            </MudButton>
+                        </MudStack>
+                    }
+                    else
+                    {
+                        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-4">
+                            <MudText Typo="Typo.body2">
+                                No Discord account is currently linked. Link your Discord account to verify ownership and access Discord-exclusive features.
+                            </MudText>
+                        </MudAlert>
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   Class="glow-button"
+                                   OnClick="HandleLinkDiscord"
+                                   Disabled="LinkingDiscord"
+                                   StartIcon="@Icons.Custom.Brands.Discord">
+                            @if (LinkingDiscord)
+                            {
+                                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                                <MudText>Redirecting...</MudText>
+                            }
+                            else
+                            {
+                                <MudText>Link Discord Account</MudText>
+                            }
+                        </MudButton>
+                    }
+                </MudCard>
+
+                @* Update Discord ID Section *@
+                <MudCard Class="glass-card pa-6 mb-6 animate-fade-in-delay-3" Elevation="0">
+                    <MudStack Spacing="2" Class="mb-4">
+                        <MudText Typo="Typo.h6">Update Discord ID</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            Transfer your account to a different Discord account. You will need to log in with the new Discord account.
+                        </MudText>
+                    </MudStack>
+
+                    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-4">
+                        <MudText Typo="Typo.body2">
+                            Warning: Updating your Discord ID will unlink your current Discord account. You will need to log in with the new Discord account to regain access.
+                        </MudText>
+                    </MudAlert>
+
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Warning"
+                               OnClick="HandleUpdateDiscord"
+                               Disabled="UpdatingDiscord"
+                               StartIcon="@Icons.Custom.Brands.Discord">
+                        @if (UpdatingDiscord)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                            <MudText>Redirecting...</MudText>
+                        }
+                        else
+                        {
+                            <MudText>Update Discord ID</MudText>
+                        }
+                    </MudButton>
+                </MudCard>
+
+                @* Update Forms Row *@
+                <MudGrid Spacing="4">
+                    @* Update Password Form *@
+                    <MudItem xs="12" md="6">
+                        <MudCard Class="glass-card pa-4 animate-fade-in-delay-2" Elevation="0" Style="height: 100%;">
+                            <MudCardContent>
+                                <MudStack Spacing="2" Class="mb-4">
+                                    <MudText Typo="Typo.h6">Update Password</MudText>
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                        A confirmation link will be sent to your email address.
+                                    </MudText>
+                                </MudStack>
+
+                                <EditForm Model="PasswordUpdateFormModel" OnValidSubmit="HandlePasswordUpdateSubmit">
+                                    <DataAnnotationsValidator />
+
+                                    <MudStack Spacing="3">
+                                        <MudTextField @bind-Value="PasswordUpdateFormModel.CurrentPassword"
+                                                      For="@(() => PasswordUpdateFormModel.CurrentPassword)"
+                                                      Label="Current Password"
+                                                      HelperText="Your current password."
+                                                      Variant="Variant.Outlined"
+                                                      InputType="@CurrentPasswordInputType"
+                                                      Adornment="Adornment.End"
+                                                      AdornmentIcon="@CurrentPasswordVisibilityIcon"
+                                                      OnAdornmentClick="ToggleCurrentPasswordVisibility"
+                                                      AdornmentAriaLabel="Toggle password visibility" />
+
+                                        <MudTextField @bind-Value="PasswordUpdateFormModel.Password"
+                                                      For="@(() => PasswordUpdateFormModel.Password)"
+                                                      Label="New Password"
+                                                      HelperText="At least 8 characters long."
+                                                      Variant="Variant.Outlined"
+                                                      InputType="@NewPasswordInputType"
+                                                      Adornment="Adornment.End"
+                                                      AdornmentIcon="@NewPasswordVisibilityIcon"
+                                                      OnAdornmentClick="ToggleNewPasswordVisibility"
+                                                      AdornmentAriaLabel="Toggle password visibility" />
+
+                                        <MudTextField @bind-Value="PasswordUpdateFormModel.ConfirmPassword"
+                                                      For="@(() => PasswordUpdateFormModel.ConfirmPassword)"
+                                                      Label="Confirm New Password"
+                                                      HelperText="Enter the same password again for confirmation."
+                                                      Variant="Variant.Outlined"
+                                                      InputType="@ConfirmPasswordInputType"
+                                                      Adornment="Adornment.End"
+                                                      AdornmentIcon="@ConfirmPasswordVisibilityIcon"
+                                                      OnAdornmentClick="ToggleConfirmPasswordVisibility"
+                                                      AdornmentAriaLabel="Toggle password visibility" />
+
+                                        <MudStack Row="true" Justify="Justify.FlexEnd">
+                                            <MudButton ButtonType="ButtonType.Submit"
+                                                       Variant="Variant.Filled"
+                                                       Color="Color.Primary"
+                                                       Class="glow-button"
+                                                       Disabled="PasswordUpdateProcessing">
+                                                @if (PasswordUpdateProcessing)
+                                                {
+                                                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                                                    <MudText>Requesting...</MudText>
+                                                }
+                                                else
+                                                {
+                                                    <MudText>Request Password Update</MudText>
+                                                }
+                                            </MudButton>
+                                        </MudStack>
+                                    </MudStack>
+                                </EditForm>
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
+                </MudGrid>
+            }
+        </Authorized>
+    </AuthorizeView>
+</MudContainer>
+
+@code {
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    private RequestAccountPasswordUpdateFormModel PasswordUpdateFormModel { get; set; } = new ();
+
+    private UserResponse? AccountOverview { get; set; }
+
+    private bool PasswordUpdateProcessing { get; set; }
+    private bool LoadingAccountOverview { get; set; } = true;
+    private bool LoadingDiscordStatus { get; set; } = true;
+    private bool LinkingDiscord { get; set; }
+    private bool UnlinkingDiscord { get; set; }
+    private bool UpdatingDiscord { get; set; }
+
+    private DiscordLinkedAccountResponse? DiscordLinkedAccount { get; set; }
+
+    private bool CurrentPasswordVisible { get; set; }
+    private bool NewPasswordVisible { get; set; }
+    private bool ConfirmPasswordVisible { get; set; }
+
+    private string DisplayName => string.IsNullOrWhiteSpace(AccountOverview?.CurrentClanTag)
+        ? AccountOverview?.CurrentAccountName ?? string.Empty
+        : $"[{AccountOverview.CurrentClanTag}]{AccountOverview.CurrentAccountName}";
+
+    private InputType CurrentPasswordInputType => CurrentPasswordVisible ? InputType.Text : InputType.Password;
+    private InputType NewPasswordInputType => NewPasswordVisible ? InputType.Text : InputType.Password;
+    private InputType ConfirmPasswordInputType => ConfirmPasswordVisible ? InputType.Text : InputType.Password;
+
+    private string CurrentPasswordVisibilityIcon => CurrentPasswordVisible ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility;
+    private string NewPasswordVisibilityIcon => NewPasswordVisible ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility;
+    private string ConfirmPasswordVisibilityIcon => ConfirmPasswordVisible ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility;
+
+    private void ToggleCurrentPasswordVisibility() => CurrentPasswordVisible = !CurrentPasswordVisible;
+    private void ToggleNewPasswordVisibility() => NewPasswordVisible = !NewPasswordVisible;
+    private void ToggleConfirmPasswordVisibility() => ConfirmPasswordVisible = !ConfirmPasswordVisible;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthenticationStateTask is null)
+        {
+            LoadingAccountOverview = false;
+            return;
+        }
+
+        AuthenticationState authenticationState = await AuthenticationStateTask;
+
+        string? userIDClaimValue = authenticationState.User.Claims.SingleOrDefault(claim => claim.Type.Equals("user_id"))?.Value;
+
+        if (int.TryParse(userIDClaimValue, out int userID) is false)
+        {
+            LoadingAccountOverview = false;
+            Snackbar.Add("Unable to determine the authenticated user.", Severity.Error);
+            return;
+        }
+
+        // Check for Discord OAuth callback query parameters
+        Uri currentUri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+        Dictionary<string, StringValues> queryParams = QueryHelpers.ParseQuery(currentUri.Query);
+
+        if (queryParams.TryGetValue("discordLoggedIn", out StringValues discordLoggedIn) && discordLoggedIn == "true")
+        {
+            if (queryParams.TryGetValue("token", out StringValues token) && string.IsNullOrWhiteSpace(token) is false)
+            {
+                await AuthenticationService.SetToken(token!);
+            }
+
+            if (queryParams.TryGetValue("username", out StringValues discordUsername))
+            {
+                Snackbar.Add($"Welcome! You are now logged in as \"{discordUsername}\".", Severity.Success);
+            }
+
+            if (queryParams.TryGetValue("error", out StringValues errorValue))
+            {
+                string? errorString = errorValue.ToString();
+                string errorMessage = errorString == "discord_email_in_use"
+                    ? "A KONGOR account already exists with your Discord email address. Please log in with your email and password, then link your Discord account from your account settings."
+                    : "An error occurred during Discord registration. Please try again.";
+                Snackbar.Add(errorMessage, Severity.Error);
+                NavigationManager.NavigateTo("/register");
+                return;
+            }
+
+            NavigationManager.NavigateTo("/account", forceLoad: false);
+            return;
+        }
+
+        if (queryParams.TryGetValue("discordLinked", out StringValues discordLinked) && discordLinked == "true")
+        {
+            queryParams.TryGetValue("username", out StringValues discordUsername);
+            queryParams.TryGetValue("avatar", out StringValues discordAvatar);
+
+            Snackbar.Add($"Discord account \"{discordUsername}\" has been successfully linked.", Severity.Success);
+
+            NavigationManager.NavigateTo("/account", forceLoad: false);
+        }
+
+        if (queryParams.TryGetValue("discordUpdated", out StringValues discordUpdated) && discordUpdated == "true")
+        {
+            queryParams.TryGetValue("username", out StringValues discordUsername);
+
+            Snackbar.Add($"Discord ID has been successfully updated to \"{discordUsername}\".", Severity.Success);
+
+            NavigationManager.NavigateTo("/account", forceLoad: false);
+        }
+
+        await LoadAccountOverview(userID);
+        await LoadDiscordStatus();
+    }
+
+    private async Task LoadAccountOverview(int userID)
+    {
+        try
+        {
+            HttpClient client = AuthenticationService.CreateAuthenticatedClient();
+            HttpResponseMessage response = await client.GetAsync($"/User/{userID}");
+
+            if (response.StatusCode is HttpStatusCode.OK)
+            {
+                AccountOverview = await response.Content.ReadFromJsonAsync<UserResponse>();
+            }
+            else
+            {
+                string errorMessage = await response.Content.ReadAsStringAsync();
+                Snackbar.Add(errorMessage, Severity.Error);
+            }
+        }
+        catch (HttpRequestException)
+        {
+            Snackbar.Add("Unable to reach the server. Please try again later.", Severity.Error);
+        }
+        catch (NotSupportedException)
+        {
+            Snackbar.Add("The account overview response format is not supported.", Severity.Error);
+        }
+        catch (JsonException)
+        {
+            Snackbar.Add("The account overview response could not be read.", Severity.Error);
+        }
+        finally
+        {
+            LoadingAccountOverview = false;
+        }
+    }
+
+    private static string GetDisplayValue(string value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? "-" : value;
+    }
+
+    private static string FormatTimestamp(DateTimeOffset timestamp)
+    {
+        return timestamp.ToString("dd MMM yyyy");
+    }
+
+    private async Task HandlePasswordUpdateSubmit()
+    {
+        PasswordUpdateProcessing = true;
+
+        try
+        {
+            HttpClient client = AuthenticationService.CreateAuthenticatedClient();
+
+            RequestAccountPasswordUpdateRequest request = new (PasswordUpdateFormModel.CurrentPassword, PasswordUpdateFormModel.Password, PasswordUpdateFormModel.ConfirmPassword);
+
+            HttpResponseMessage response = await client.PostAsJsonAsync("/Password/Update/Request", request);
+
+            if (response.StatusCode is HttpStatusCode.OK)
+            {
+                PasswordUpdateFormModel = new RequestAccountPasswordUpdateFormModel();
+                Snackbar.Add("Password update requested successfully.", Severity.Success);
+                Snackbar.Add($"A confirmation link has been sent to {AccountOverview!.EmailAddress}.", Severity.Info);
+            }
+            else
+            {
+                string errorMessage = await response.Content.ReadAsStringAsync();
+                Snackbar.Add(errorMessage, Severity.Error);
+            }
+        }
+        catch (Exception)
+        {
+            Snackbar.Add("Unable to reach the server. Please try again later.", Severity.Error);
+        }
+        finally
+        {
+            PasswordUpdateProcessing = false;
+        }
+    }
+
+    private async Task LoadDiscordStatus()
+    {
+        LoadingDiscordStatus = true;
+
+        try
+        {
+            HttpClient client = AuthenticationService.CreateAuthenticatedClient();
+            HttpResponseMessage response = await client.GetAsync("/Discord/Me");
+
+            if (response.StatusCode is HttpStatusCode.OK)
+            {
+                DiscordLinkedAccount = await response.Content.ReadFromJsonAsync<DiscordLinkedAccountResponse>();
+            }
+            else if (response.StatusCode is HttpStatusCode.NotFound)
+            {
+                DiscordLinkedAccount = null;
+            }
+        }
+        catch (HttpRequestException)
+        {
+            Snackbar.Add("Unable to reach the server. Please try again later.", Severity.Error);
+        }
+        catch (NotSupportedException)
+        {
+            Snackbar.Add("The Discord status response format is not supported.", Severity.Error);
+        }
+        catch (JsonException)
+        {
+            Snackbar.Add("The Discord status response could not be read.", Severity.Error);
+        }
+        finally
+        {
+            LoadingDiscordStatus = false;
+        }
+    }
+
+    private void HandleLinkDiscord()
+    {
+        LinkingDiscord = true;
+        NavigationManager.NavigateTo("/Discord/Link", forceLoad: true);
+    }
+
+    private async Task HandleUnlinkDiscord()
+    {
+        UnlinkingDiscord = true;
+
+        try
+        {
+            HttpClient client = AuthenticationService.CreateAuthenticatedClient();
+            HttpResponseMessage response = await client.DeleteAsync("/Discord/Link");
+
+            if (response.StatusCode is HttpStatusCode.OK)
+            {
+                DiscordLinkedAccount = null;
+                Snackbar.Add("Discord account has been unlinked successfully.", Severity.Success);
+            }
+            else
+            {
+                string errorMessage = await response.Content.ReadAsStringAsync();
+                Snackbar.Add(errorMessage, Severity.Error);
+            }
+        }
+        catch (HttpRequestException)
+        {
+            Snackbar.Add("Unable to reach the server. Please try again later.", Severity.Error);
+        }
+        finally
+        {
+            UnlinkingDiscord = false;
+        }
+    }
+
+    private void HandleUpdateDiscord()
+    {
+        UpdatingDiscord = true;
+        NavigationManager.NavigateTo("/Discord/Link?update=true", forceLoad: true);
+    }
+
+    private static string GetDiscordAvatarUrl(string discordId, string? avatarHash)
+    {
+        if (string.IsNullOrWhiteSpace(avatarHash))
+        {
+            return string.Empty;
+        }
+
+        return $"https://cdn.discordapp.com/avatars/{discordId}/{avatarHash}.png?size=128";
+    }
+
+    private class DiscordLinkedAccountResponse
+    {
+        public string? DiscordId { get; set; }
+        public string? DiscordUsername { get; set; }
+        public string? DiscordAvatarHash { get; set; }
+        public DateTimeOffset? LinkedAt { get; set; }
+    }
+}

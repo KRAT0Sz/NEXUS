@@ -1,0 +1,241 @@
+@page "/login"
+
+@inject PortalAuthenticationService AuthenticationService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+
+<PageTitle>Log In - Project KONGOR</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="px-4 py-12">
+    <div class="re-hero">
+        <div class="re-icon-wrap">
+            <MudIcon Icon="@Icons.Material.Filled.Login" Size="Size.Medium" Class="re-icon" />
+        </div>
+        <MudText Typo="Typo.h4" Class="re-title">Welcome Back</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="re-subtitle">
+            Enter your account name and password to sign in.
+        </MudText>
+    </div>
+
+    <div class="re-form-card">
+        <EditForm Model="FormModel" OnValidSubmit="HandleValidSubmit">
+            <DataAnnotationsValidator />
+
+            <div class="re-field-group">
+                <label class="re-field-label">Account Name</label>
+                <MudTextField @bind-Value="FormModel.Name"
+                              For="@(() => FormModel.Name)"
+                              Placeholder="Your account name"
+                              Variant="Variant.Outlined"
+                              InputType="InputType.Text"
+                              Margin="Margin.Dense"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Person"
+                              Class="re-text-field" />
+            </div>
+
+            <div class="re-field-group">
+                <div class="re-label-row">
+                    <label class="re-field-label">Password</label>
+                    <MudLink Href="/password/recover"
+                             Typo="Typo.caption"
+                             Color="Color.Primary"
+                             Underline="Underline.Hover">
+                        Forgotten?
+                    </MudLink>
+                </div>
+                <MudTextField @bind-Value="FormModel.Password"
+                              For="@(() => FormModel.Password)"
+                              Placeholder="Your password"
+                              Variant="Variant.Outlined"
+                              InputType="@PasswordInputType"
+                              Margin="Margin.Dense"
+                              Adornment="Adornment.End"
+                              AdornmentIcon="@PasswordVisibilityIcon"
+                              OnAdornmentClick="TogglePasswordVisibility"
+                              AdornmentAriaLabel="Toggle password visibility"
+                              Class="re-text-field" />
+            </div>
+
+            <MudButton ButtonType="ButtonType.Submit"
+                       Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Class="re-submit-btn"
+                       Disabled="Processing"
+                       FullWidth="true"
+                       Size="Size.Medium">
+                @if (Processing)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                    <MudText>Signing In...</MudText>
+                }
+                else
+                {
+                    <MudText>Sign In</MudText>
+                }
+            </MudButton>
+        </EditForm>
+    </div>
+
+    <MudText Align="Align.Center" Class="re-footer">
+        Do not have an account?
+        <MudLink Href="/register" Color="Color.Primary" Underline="Underline.Always">Register here</MudLink>
+    </MudText>
+</MudContainer>
+
+<style>
+    /* ===== Hero Section ===== */
+    .re-hero {
+        text-align: center;
+        margin-bottom: 1.75rem;
+    }
+
+    .re-icon-wrap {
+        width: 56px;
+        height: 56px;
+        margin: 0 auto 1rem;
+        border-radius: 50%;
+        background: rgba(var(--kongor-primary-rgb), 0.12);
+        border: 1px solid rgba(var(--kongor-primary-rgb), 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: re-float 3s ease-in-out infinite;
+    }
+
+    @@keyframes re-float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-4px); }
+    }
+
+    .re-icon {
+        font-size: 1.5rem;
+        color: var(--kongor-primary);
+    }
+
+    .re-title {
+        font-weight: 700;
+        margin-bottom: 0.375rem;
+    }
+
+    .re-subtitle {
+        max-width: 300px;
+        margin: 0 auto;
+        line-height: 1.6;
+    }
+
+    /* ===== Form Card ===== */
+    .re-form-card {
+        background: rgba(var(--kongor-surface-rgb), 0.55);
+        border: 1px solid rgba(var(--kongor-primary-rgb), 0.08);
+        border-radius: 8px;
+        padding: 1.5rem;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        margin-bottom: 1.5rem;
+    }
+
+    /* ===== Field Groups ===== */
+    .re-field-group {
+        margin-bottom: 1rem;
+    }
+
+    .re-label-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.375rem;
+    }
+
+    .re-field-label {
+        display: block;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: rgba(var(--kongor-surface-rgb), 0.7);
+    }
+
+    :global(.re-form-card) .mud-input-control {
+        margin-bottom: 0 !important;
+    }
+
+    :global(.re-form-card) .mud-input {
+        font-size: 0.9375rem;
+        background: rgba(var(--kongor-surface-rgb), 0.3) !important;
+        border-radius: 4px;
+    }
+
+    /* ===== Submit Button ===== */
+    .re-submit-btn {
+        height: 42px;
+        font-weight: 600;
+        text-transform: none !important;
+        font-size: 0.9375rem;
+        border-radius: 4px;
+        margin-top: 0.5rem;
+    }
+
+    /* ===== Footer ===== */
+    .re-footer {
+        color: rgba(var(--kongor-surface-rgb), 0.6);
+        font-size: 0.875rem;
+    }
+</style>
+
+@code {
+
+    private LogInFormModel FormModel { get; set; } = new ();
+
+    private bool Processing { get; set; }
+
+    private bool PasswordVisible { get; set; }
+
+    private InputType PasswordInputType => PasswordVisible ? InputType.Text : InputType.Password;
+
+    private string PasswordVisibilityIcon => PasswordVisible ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility;
+
+    private void TogglePasswordVisibility()
+    {
+        PasswordVisible = !PasswordVisible;
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        Processing = true;
+
+        try
+        {
+            HttpClient client = AuthenticationService.CreateAnonymousClient();
+
+            LogInUserRequest request = new (FormModel.Name, FormModel.Password);
+
+            HttpResponseMessage response = await client.PostAsJsonAsync("/User/LogIn", request);
+
+            if (response.StatusCode is HttpStatusCode.OK)
+            {
+                AuthenticationTokenResponse? tokenResponse = await response.Content.ReadFromJsonAsync<AuthenticationTokenResponse>();
+
+                if (tokenResponse is not null)
+                {
+                    await AuthenticationService.SetToken(tokenResponse.Token);
+                    Snackbar.Add("Logged in successfully.", Severity.Success);
+                    NavigationManager.NavigateTo("/account");
+                }
+            }
+            else
+            {
+                string errorMessage = await response.Content.ReadAsStringAsync();
+                Snackbar.Add(errorMessage, Severity.Error);
+            }
+        }
+        catch (Exception)
+        {
+            Snackbar.Add("Unable to reach the server. Please try again later.", Severity.Error);
+        }
+        finally
+        {
+            Processing = false;
+        }
+    }
+}

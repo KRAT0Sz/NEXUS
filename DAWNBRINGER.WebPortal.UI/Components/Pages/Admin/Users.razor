@@ -1,0 +1,160 @@
+@page "/admin/users"
+@page "/admin/users/{Page:int}"
+
+@attribute [Authorize]
+@layout Layout.AdminLayout
+
+@inject PortalAuthenticationService AuthenticationService
+@inject ISnackbar Snackbar
+
+<PageTitle>Manage Users - Admin - Project KONGOR</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="px-4 px-sm-6 pt-8">
+    <MudStack Spacing="4" Class="animate-fade-in">
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+            <MudStack Spacing="1">
+                <MudText Typo="Typo.h4" Color="Color.Primary">Users</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Manage registered users and their permissions.</MudText>
+            </MudStack>
+        </MudStack>
+
+        <MudCard Class="glass-card pa-4" Elevation="0">
+            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mb-4">
+                <MudTextField @bind-Value="SearchText"
+                              Placeholder="Search by email..."
+                              Variant="Variant.Outlined"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search"
+                              Immediate="true"
+                              OnDebounceIntervalElapsed="HandleSearch"
+                              DebounceInterval="300"
+                              Style="max-width: 400px;" />
+                <MudSelect @bind-Value="RoleFilter" Placeholder="All Roles" T="string" Variant="Variant.Outlined" Label="Role" Style="min-width: 200px;">
+                    <MudSelectItem T="string" Value="null">All Roles</MudSelectItem>
+                    <MudSelectItem T="string" Value='"ADMINISTRATOR"'>Administrator</MudSelectItem>
+                    <MudSelectItem T="string" Value='"USER"'>User</MudSelectItem>
+                </MudSelect>
+                <MudButton Variant="Variant.Outlined" Color="Color.Default" OnClick="ResetFilters">Reset</MudButton>
+            </MudStack>
+
+            <MudTable T="AdminUserSummaryResponse" ServerData="ServerReload"
+                      @ref="Table"
+                      Hover="true"
+                      Elevation="0"
+                      RowsPerPage="PageSize">
+                <HeaderContent>
+                    <MudTh>ID</MudTh>
+                    <MudTh>Email</MudTh>
+                    <MudTh>Role</MudTh>
+                    <MudTh>Accounts</MudTh>
+                    <MudTh>Gold</MudTh>
+                    <MudTh>Silver</MudTh>
+                    <MudTh>Created</MudTh>
+                    <MudTh>Discord</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="ID">@context.ID</MudTd>
+                    <MudTd DataLabel="Email">
+                        <MudLink Href="@($"/admin/users/detail/{context.ID}")" Underline="Underline.Hover">
+                            @context.EmailAddress
+                        </MudLink>
+                    </MudTd>
+                    <MudTd DataLabel="Role">
+                        @if (context.Role == "ADMINISTRATOR")
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Filled">Admin</MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">User</MudChip>
+                        }
+                    </MudTd>
+                    <MudTd DataLabel="Accounts">@context.AccountCount</MudTd>
+                    <MudTd DataLabel="Gold">@context.GoldCoins.ToString("N0")</MudTd>
+                    <MudTd DataLabel="Silver">@context.SilverCoins.ToString("N0")</MudTd>
+                    <MudTd DataLabel="Created">@context.TimestampCreated.ToString("dd MMM yyyy")</MudTd>
+                    <MudTd DataLabel="Discord">
+                        @if (!string.IsNullOrWhiteSpace(context.DiscordId))
+                        {
+                            <MudIcon Icon="@Icons.Custom.Brands.Discord" Color="Color.Primary" Size="Size.Small" />
+                        }
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText Align="Align.Center" Color="Color.Secondary" Class="pa-4">No users found.</MudText>
+                </NoRecordsContent>
+                <LoadingContent>
+                    <MudText Align="Align.Center" Color="Color.Primary" Class="pa-4">Loading users...</MudText>
+                </LoadingContent>
+                <PagerContent>
+                    <MudTablePager PageSizeOptions="new[] { 10, 20, 50, 100 }" />
+                </PagerContent>
+            </MudTable>
+        </MudCard>
+    </MudStack>
+</MudContainer>
+
+@code {
+    [Parameter]
+    public int Page { get; set; } = 1;
+
+    private const int PageSize = 20;
+
+    private MudTable<AdminUserSummaryResponse> Table { get; set; } = null!;
+    private string SearchText { get; set; } = string.Empty;
+    private string? RoleFilter { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (Page < 1) Page = 1;
+    }
+
+    private async Task<TableData<AdminUserSummaryResponse>> ServerReload(TableState state, CancellationToken cancellationToken)
+    {
+        _ = cancellationToken;
+        int page = (state.Page + 1);
+        string? search = string.IsNullOrWhiteSpace(SearchText) ? null : SearchText;
+        string? role = RoleFilter == "null" ? null : RoleFilter;
+
+        try
+        {
+            HttpClient client = AuthenticationService.CreateAuthenticatedClient();
+            string url = $"/Admin/Users?page={page}&pageSize={state.PageSize}";
+            if (!string.IsNullOrWhiteSpace(search)) url += $"&search={Uri.EscapeDataString(search)}";
+            if (!string.IsNullOrWhiteSpace(role)) url += $"&role={Uri.EscapeDataString(role)}";
+
+            HttpResponseMessage response = await client.GetAsync(url);
+
+            if (response.StatusCode is HttpStatusCode.OK)
+            {
+                AdminPaginatedResponse<AdminUserSummaryResponse>? result = await response.Content.ReadFromJsonAsync<AdminPaginatedResponse<AdminUserSummaryResponse>>();
+                if (result is not null)
+                {
+                    return new TableData<AdminUserSummaryResponse>
+                    {
+                        Items = result.Items,
+                        TotalItems = result.TotalCount
+                    };
+                }
+            }
+        }
+        catch (HttpRequestException)
+        {
+            Snackbar.Add("Failed to load users.", Severity.Error);
+        }
+
+        return new TableData<AdminUserSummaryResponse> { Items = [], TotalItems = 0 };
+    }
+
+    private async Task HandleSearch()
+    {
+        await Table.ReloadServerData();
+    }
+
+    private async Task ResetFilters()
+    {
+        SearchText = string.Empty;
+        RoleFilter = null;
+        await Table.ReloadServerData();
+    }
+}
