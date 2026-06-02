@@ -1,6 +1,6 @@
-﻿namespace KONGOR.MasterServer.Models.RequestResponse.ServerManagement;
+namespace KONGOR.MasterServer.Models.RequestResponse.ServerManagement;
 
-public class ServerForCreateListResponse(List<MatchServer> servers, string? region, string cookie) : ServerListResponse(cookie)
+public class ServerForCreateListResponse(List<MatchServer> servers, string cookie) : ServerListResponse(cookie)
 {
        // TODO: Filter Server List By Region(+Add Support For NEWERTH Region)
 

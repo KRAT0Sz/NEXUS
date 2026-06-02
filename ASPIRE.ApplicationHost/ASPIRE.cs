@@ -129,7 +129,7 @@ public class ASPIRE
             .WithEnvironment("INFRASTRUCTURE_GATEWAY", gateway);
 
         // Add Master Server Project
-        builder.AddProject<KONGOR>("master-server", builder.Environment.IsProduction() ? "KONGOR.MasterServer Production" : "KONGOR.MasterServer Development")
+        IResourceBuilder<ProjectResource> masterServer = builder.AddProject<KONGOR>("master-server", builder.Environment.IsProduction() ? "KONGOR.MasterServer Production" : "KONGOR.MasterServer Development")
             .WithReference(database, connectionName: "MERRICK").WaitFor(database) // Connect To SQL Server Database And Wait For It To Start
             .WithReference(distributedCache, connectionName: "DISTRIBUTED-CACHE").WaitFor(distributedCache) // Connect To Distributed Cache And Wait For It To Start
             .WithReference(logServer) // Connect To Structured Log Server
@@ -140,7 +140,7 @@ public class ASPIRE
             .WithEnvironment("INFRASTRUCTURE_GATEWAY", gateway);
 
         // Add Chat Server Project
-        builder.AddProject<TRANSMUTANSTEIN>("chat-server", builder.Environment.IsProduction() ? "TRANSMUTANSTEIN.ChatServer Production" : "TRANSMUTANSTEIN.ChatServer Development")
+        IResourceBuilder<ProjectResource> chatServer = builder.AddProject<TRANSMUTANSTEIN>("chat-server", builder.Environment.IsProduction() ? "TRANSMUTANSTEIN.ChatServer Production" : "TRANSMUTANSTEIN.ChatServer Development")
             .WithReference(database, connectionName: "MERRICK").WaitFor(database) // Connect To SQL Server Database And Wait For It To Start
             .WithReference(distributedCache, connectionName: "DISTRIBUTED-CACHE").WaitFor(distributedCache) // Connect To Distributed Cache And Wait For It To Start
             .WithReference(logServer) // Connect To Structured Log Server

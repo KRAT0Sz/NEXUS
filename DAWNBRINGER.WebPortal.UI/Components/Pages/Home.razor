@@ -92,7 +92,7 @@
         </MudItem>
     </MudGrid>
 
-    @if (false)
+    @if (ShowUnderConstructionSections)
     {
     <hr class="section-divider" />
 
@@ -276,6 +276,10 @@
     </MudCard>
 
 </MudContainer>
+
+@code {
+    private bool ShowUnderConstructionSections { get; set; } = false;
+}
 
 <style>
     .hero-bg-gradient {
