@@ -9,5 +9,6 @@
     <Project Path="KONGOR.MasterServer/KONGOR.MasterServer.csproj" />
     <Project Path="MERRICK.DatabaseContext/MERRICK.DatabaseContext.csproj" />
     <Project Path="TRANSMUTANSTEIN.ChatServer/TRANSMUTANSTEIN.ChatServer.csproj" />
+    <Project Path="VINDICATOR.DiscordBot/VINDICATOR.DiscordBot.csproj" />
     <Project Path="ZORGATH.WebPortal.API/ZORGATH.WebPortal.API.csproj" />
 </Solution>

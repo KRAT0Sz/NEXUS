@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>dotnet-VINDICATOR.DiscordBot-b1a7c8f5-de4c-4822-8a0d-4bdaf66e00af</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Microsoft.EntityFrameworkCore.SqlServer" Version="13.3.5" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.8" />
+    <PackageReference Include="Discord.Net" Version="3.19.1" />
+    <PackageReference Include="Discord.Net.Interactions" Version="3.19.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ASPIRE.Common\ASPIRE.Common.csproj" />
+    <ProjectReference Include="..\MERRICK.DatabaseContext\MERRICK.DatabaseContext.csproj" />
+  </ItemGroup>
+</Project>
