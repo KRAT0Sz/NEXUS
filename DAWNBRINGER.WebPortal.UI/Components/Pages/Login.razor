@@ -80,9 +80,13 @@
         </MudCardContent>
     </MudCard>
 
-    <MudText Typo="Typo.body2" Align="Align.Center" Class="mt-4">
-        Do not have an account? <MudLink Href="/email/register">Register here</MudLink>
-    </MudText>
+    <div class="d-flex justify-center mt-6">
+        <div class="auth-footer-pill px-6 py-2 rounded-pill">
+            <MudText Typo="Typo.body2" Align="Align.Center">
+                Do not have an account? <MudLink Href="/register" Color="Color.Primary" Underline="Underline.Always" Class="font-weight-bold ml-1">Register here</MudLink>
+            </MudText>
+        </div>
+    </div>
 </MudStack>
 
 <style>
@@ -92,6 +96,13 @@
     }
     .discord-btn:hover {
         background-color: rgba(88, 101, 242, 0.08) !important;
+    }
+    .auth-footer-pill {
+        background: rgba(var(--kongor-surface-rgb), 0.7);
+        border: 1px solid rgba(var(--kongor-primary-rgb), 0.15);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     }
 </style>
 
@@ -153,7 +164,8 @@
 
     private void HandleDiscordLogin()
     {
-        string apiBase = Configuration["API:BaseAddress"]?.TrimEnd('/') ?? string.Empty;
+        Uri currentUri = NavigationManager.ToAbsoluteUri(NavigationManager.BaseUri);
+        string apiBase = $"https://{currentUri.Host}:5556";
         NavigationManager.NavigateTo($"{apiBase}/Discord/Authentication", forceLoad: true);
     }
 }

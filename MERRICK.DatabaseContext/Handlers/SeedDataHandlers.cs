@@ -1,4 +1,4 @@
-﻿namespace MERRICK.DatabaseContext.Handlers;
+namespace MERRICK.DatabaseContext.Handlers;
 
 public static class SeedDataHandlers
 {
@@ -25,8 +25,8 @@ public static class SeedDataHandlers
             EmailAddress = "project.kongor@proton.me",
             Role = roleAdministrator,
             SRPPasswordSalt = "861c37ec6d049d92cc1c67d195b414f26b572a56358272af3e9c06fcd9bfa053",
-            SRPPasswordHash = "fe6f16b0ecb80f6b2bc95d68420fd13afef0c895172a81819870660208ac221a",
-            PBKDF2PasswordHash = "AQAAAAIAAYagAAAAEMUkpLAr01NjkKRPaXCyTa17nlOdPKJucn5QYur+wQBTDKCpgsAcREenK+pGJPBCRw==",
+            SRPPasswordHash = "53cde4d3e288c2f0f0613d1ef4681ae8463e40e24fab9c4826399b533d57a17d",
+            PBKDF2PasswordHash = "AQAAAAIAAYagAAAAEM3fpYtdT1v1qfoszcTWDKRLAl8ywC8xHXZuVdlcRyxVy1hsh0PeNCebAh6xgKspkw==",
             GoldCoins = 5_555_555,
             SilverCoins = 555_555_555,
             PlinkoTickets = 5_555_555,
@@ -133,6 +133,102 @@ public static class SeedDataHandlers
         };
 
         await context.AddAsync(systemAccount, cancellationToken);
+
+        Account kratosAccount = new ()
+        {
+            Name = "KRATOS",
+            User = user,
+            Type = AccountType.Staff,
+            IsMain = true,
+            Clan = null,
+            ClanTier = ClanTier.None,
+            TimestampJoinedClan = null,
+            AscensionLevel = 666,
+            AutoConnectChatChannels = [.. ChatChannels.AllDefaultChannels],
+            SelectedStoreItems = [ "ai.custom_icon:1", "av.Flamboyant", "c.cat_courier", "cc.frostburnlogo", "cr.Punk Creep", "cs.frostburnlogo", "m.Super-Taunt", "sc.paragon_circle_upgrade", "t.Dumpster_Taunt", "te.Punk TP", "w.8bit_ward" ]
+        };
+
+        await context.AddAsync(kratosAccount, cancellationToken);
+
+        Account richAccount = new ()
+        {
+            Name = "Rich",
+            User = user,
+            Type = AccountType.Staff,
+            IsMain = true,
+            Clan = null,
+            ClanTier = ClanTier.None,
+            TimestampJoinedClan = null,
+            AscensionLevel = 666,
+            AutoConnectChatChannels = [.. ChatChannels.AllDefaultChannels],
+            SelectedStoreItems = [ "ai.custom_icon:1", "av.Flamboyant", "c.cat_courier", "cc.frostburnlogo", "cr.Punk Creep", "cs.frostburnlogo", "m.Super-Taunt", "sc.paragon_circle_upgrade", "t.Dumpster_Taunt", "te.Punk TP", "w.8bit_ward" ]
+        };
+
+        await context.AddAsync(richAccount, cancellationToken);
+
+        Account nestyAccount = new ()
+        {
+            Name = "Nesty",
+            User = user,
+            Type = AccountType.Staff,
+            IsMain = true,
+            Clan = null,
+            ClanTier = ClanTier.None,
+            TimestampJoinedClan = null,
+            AscensionLevel = 666,
+            AutoConnectChatChannels = [.. ChatChannels.AllDefaultChannels],
+            SelectedStoreItems = [ "ai.custom_icon:1", "av.Flamboyant", "c.cat_courier", "cc.frostburnlogo", "cr.Punk Creep", "cs.frostburnlogo", "m.Super-Taunt", "sc.paragon_circle_upgrade", "t.Dumpster_Taunt", "te.Punk TP", "w.8bit_ward" ]
+        };
+
+        await context.AddAsync(nestyAccount, cancellationToken);
+
+        Account kim22Account = new ()
+        {
+            Name = "Kim22",
+            User = user,
+            Type = AccountType.Staff,
+            IsMain = true,
+            Clan = null,
+            ClanTier = ClanTier.None,
+            TimestampJoinedClan = null,
+            AscensionLevel = 666,
+            AutoConnectChatChannels = [.. ChatChannels.AllDefaultChannels],
+            SelectedStoreItems = [ "ai.custom_icon:1", "av.Flamboyant", "c.cat_courier", "cc.frostburnlogo", "cr.Punk Creep", "cs.frostburnlogo", "m.Super-Taunt", "sc.paragon_circle_upgrade", "t.Dumpster_Taunt", "te.Punk TP", "w.8bit_ward" ]
+        };
+
+        await context.AddAsync(kim22Account, cancellationToken);
+
+        Account nigfridAccount = new ()
+        {
+            Name = "NigfriD",
+            User = user,
+            Type = AccountType.Staff,
+            IsMain = true,
+            Clan = null,
+            ClanTier = ClanTier.None,
+            TimestampJoinedClan = null,
+            AscensionLevel = 666,
+            AutoConnectChatChannels = [.. ChatChannels.AllDefaultChannels],
+            SelectedStoreItems = [ "ai.custom_icon:1", "av.Flamboyant", "c.cat_courier", "cc.frostburnlogo", "cr.Punk Creep", "cs.frostburnlogo", "m.Super-Taunt", "sc.paragon_circle_upgrade", "t.Dumpster_Taunt", "te.Punk TP", "w.8bit_ward" ]
+        };
+
+        await context.AddAsync(nigfridAccount, cancellationToken);
+
+        Account met4ngAccount = new ()
+        {
+            Name = "MET4NG",
+            User = user,
+            Type = AccountType.Staff,
+            IsMain = true,
+            Clan = null,
+            ClanTier = ClanTier.None,
+            TimestampJoinedClan = null,
+            AscensionLevel = 666,
+            AutoConnectChatChannels = [.. ChatChannels.AllDefaultChannels],
+            SelectedStoreItems = [ "ai.custom_icon:1", "av.Flamboyant", "c.cat_courier", "cc.frostburnlogo", "cr.Punk Creep", "cs.frostburnlogo", "m.Super-Taunt", "sc.paragon_circle_upgrade", "t.Dumpster_Taunt", "te.Punk TP", "w.8bit_ward" ]
+        };
+
+        await context.AddAsync(met4ngAccount, cancellationToken);
 
         string[] subAccountNames = [ /* [K] */ "ONGOR", "GOPO", "Xen0byte" ];
 

@@ -7,14 +7,14 @@
    ===================================================================================================== */
 
 .dark-mode {
-    --kongor-primary:              #00E676;
-    --kongor-primary-rgb:          0, 230, 118;
-    --kongor-secondary:            #FFD740;
-    --kongor-surface-rgb:          17, 28, 20;
-    --kongor-bg-rgb:               10, 15, 13;
+    --kongor-primary:              #5865F2;
+    --kongor-primary-rgb:          88, 101, 242;
+    --kongor-secondary:            #EB459E;
+    --kongor-surface-rgb:          32, 34, 37;
+    --kongor-bg-rgb:               54, 57, 63;
     --kongor-shadow-rgb:           0, 0, 0;
-    --kongor-timeline-surface:     #0F1A12;
-    --kongor-footer-fade-rgb:      10, 15, 13;
+    --kongor-timeline-surface:     #2F3136;
+    --kongor-footer-fade-rgb:      32, 34, 37;
 }
 
 /* --- Pulsing Text Glow ------------------------------------- */

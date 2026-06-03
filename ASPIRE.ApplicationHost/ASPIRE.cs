@@ -244,6 +244,11 @@ public class ASPIRE
             .WithBrowserLogs(userDataMode: BrowserUserDataMode.Isolated); // Experimental Extension; Surfaces Web Browser Logs In The Aspire Dashboard
         # pragma warning restore ASPIREBROWSERLOGS001
 
+        // Add Discord Bot Project
+        builder.AddProject<Projects.OBSERVER_DiscordBot>("discord-bot")
+            .WithReference(database, connectionName: "MERRICK").WaitFor(databaseContext)
+            .WithReference(logServer);
+
         // Start Orchestrating Distributed Application
         builder.Build().Run();
     }

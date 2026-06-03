@@ -53,10 +53,13 @@
         </MudAlert>
     }
 
-    <MudText Align="Align.Center" Class="re-footer">
-        Already have an account?
-        <MudLink Href="/login" Color="Color.Primary" Underline="Underline.Always">Sign in</MudLink>
-    </MudText>
+    <div class="d-flex justify-center mt-6">
+        <div class="auth-footer-pill px-6 py-2 rounded-pill">
+            <MudText Typo="Typo.body2" Align="Align.Center">
+                Already have an account? <MudLink Href="/login" Color="Color.Primary" Underline="Underline.Always" Class="font-weight-bold ml-1">Sign in</MudLink>
+            </MudText>
+        </div>
+    </div>
 </MudContainer>
 
 <style>
@@ -133,9 +136,12 @@
         border-radius: 4px;
     }
 
-    .re-footer {
-        color: rgba(var(--kongor-surface-rgb), 0.6);
-        font-size: 0.875rem;
+    .auth-footer-pill {
+        background: rgba(var(--kongor-surface-rgb), 0.7);
+        border: 1px solid rgba(var(--kongor-primary-rgb), 0.15);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     }
 </style>
 

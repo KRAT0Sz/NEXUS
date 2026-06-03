@@ -29,10 +29,6 @@
                     </MudMenu>
 
                     <MudButton Href="/downloads" Color="Color.Inherit" Variant="Variant.Text">Downloads</MudButton>
-
-                    <MudButton Href="https://github.com/Project-KONGOR-Open-Source" Target="_blank" Color="Color.Inherit" Variant="Variant.Text">Source Code</MudButton>
-
-                    <MudButton Href="https://codex.kongor.net" Target="_blank" Color="Color.Inherit" Variant="Variant.Text">Knowledge Base</MudButton>
                 </MudStack>
             </MudHidden>
 
@@ -42,7 +38,7 @@
                 <MudStack Row="true" Class="align-center gap-2">
                     <AuthorizeView>
                         <NotAuthorized>
-                            <MudButton Href="/email/register" Color="AppBarButtonColour" Variant="Variant.Outlined">Register</MudButton>
+                            <MudButton Href="/register" Color="AppBarButtonColour" Variant="Variant.Outlined">Register</MudButton>
                             <MudButton Href="/login" Color="AppBarButtonColour" Variant="Variant.Outlined">Log In</MudButton>
                         </NotAuthorized>
                         <Authorized>
@@ -68,14 +64,12 @@
                 <MudNavLink Href="https://www.reddit.com/r/newerth/" Target="_blank">Reddit</MudNavLink>
             </MudNavGroup>
             <MudNavLink Href="/downloads" Icon="@Icons.Material.Filled.Download">Downloads</MudNavLink>
-            <MudNavLink Href="https://github.com/Project-KONGOR-Open-Source" Target="_blank" Icon="@Icons.Material.Filled.Code">Source Code</MudNavLink>
-            <MudNavLink Href="https://codex.kongor.net" Target="_blank" Icon="@Icons.Material.Filled.MenuBook">Knowledge Base</MudNavLink>
 
             <MudDivider Class="my-2" />
 
             <AuthorizeView>
                 <NotAuthorized>
-                    <MudNavLink Href="/email/register" Icon="@Icons.Material.Filled.PersonAdd">Register</MudNavLink>
+                    <MudNavLink Href="/register" Icon="@Icons.Material.Filled.PersonAdd">Register</MudNavLink>
                     <MudNavLink Href="/login" Icon="@Icons.Material.Filled.Login">Log In</MudNavLink>
                 </NotAuthorized>
                 <Authorized>
@@ -105,11 +99,9 @@
                     <MudStack Row="true" Justify="Justify.Center" Class="pb-2 flex-wrap gap-6">
                         <MudLink Href="/" Typo="Typo.body2" Color="Color.Inherit">Home</MudLink>
                         <MudLink Href="/downloads" Typo="Typo.body2" Color="Color.Inherit">Downloads</MudLink>
-                        <MudLink Href="https://codex.kongor.net" Target="_blank" Typo="Typo.body2" Color="Color.Inherit">Knowledge Base</MudLink>
                         <MudLink Href="https://discord.com/invite/N6pKzGDqUH" Target="_blank" Typo="Typo.body2" Color="Color.Inherit">Discord</MudLink>
                         <MudLink Href="https://app.element.io/#/room/#newerth:matrix.org" Target="_blank" Typo="Typo.body2" Color="Color.Inherit">Element</MudLink>
                         <MudLink Href="https://www.reddit.com/r/newerth/" Target="_blank" Typo="Typo.body2" Color="Color.Inherit">Reddit</MudLink>
-                        <MudLink Href="https://github.com/Project-KONGOR-Open-Source" Target="_blank" Typo="Typo.body2" Color="Color.Inherit">GitHub</MudLink>
                     </MudStack>
 
                     <MudStack Spacing="0" AlignItems="AlignItems.Center" Class="pt-4 pb-6">
@@ -141,55 +133,55 @@
     {
         PaletteDark = new PaletteDark
         {
-            Primary = "#00E676",
-            PrimaryContrastText = "#0A0F0D",
-            PrimaryDarken = "#00C853",
-            PrimaryLighten = "#69F0AE",
-            Secondary = "#FFD740",
-            SecondaryContrastText = "#1A1A1A",
-            SecondaryDarken = "#FFC400",
-            SecondaryLighten = "#FFE57F",
+            Primary = "#5865F2",
+            PrimaryContrastText = "#FFFFFF",
+            PrimaryDarken = "#4752C4",
+            PrimaryLighten = "#7983F5",
+            Secondary = "#EB459E",
+            SecondaryContrastText = "#FFFFFF",
+            SecondaryDarken = "#C0357F",
+            SecondaryLighten = "#F071B2",
             Tertiary = "#7C4DFF",
             TertiaryContrastText = "#FFFFFF",
-            Info = "#26C6DA",
-            InfoContrastText = "#0A0F0D",
-            Success = "#66BB6A",
-            SuccessContrastText = "#0A0F0D",
-            Warning = "#FFA726",
+            Info = "#00AFF4",
+            InfoContrastText = "#FFFFFF",
+            Success = "#3BA55C",
+            SuccessContrastText = "#FFFFFF",
+            Warning = "#FEE75C",
             WarningContrastText = "#1A1A1A",
-            Error = "#EF5350",
+            Error = "#ED4245",
             ErrorContrastText = "#FFFFFF",
-            Dark = "#1A2E1A",
-            Background = "#0A0F0D",
-            BackgroundGray = "#0D1610",
-            Surface = "#111C14",
-            DrawerBackground = "#0D1610",
-            DrawerText = "#C8E6C9",
-            DrawerIcon = "#00E676",
-            AppbarBackground = "#0A0F0D",
-            AppbarText = "#E0F2E0",
-            TextPrimary = "#E8F5E9",
-            TextSecondary = "#81C784",
-            TextDisabled = "#2E5E2E",
-            ActionDefault = "#A5D6A7",
-            ActionDisabled = "#2E5E2E80",
-            ActionDisabledBackground = "#1A2E1A40",
-            LinesDefault = "#1B5E2040",
-            LinesInputs = "#2E7D3260",
-            TableLines = "#1B5E2030",
-            TableStriped = "#00E67608",
-            TableHover = "#00E67615",
-            Divider = "#1B5E2040",
-            DividerLight = "#1B5E2025",
+            Dark = "#202225",
+            Background = "#36393F",
+            BackgroundGray = "#2F3136",
+            Surface = "#202225",
+            DrawerBackground = "#2F3136",
+            DrawerText = "#DCDDDE",
+            DrawerIcon = "#8E9297",
+            AppbarBackground = "#202225",
+            AppbarText = "#DCDDDE",
+            TextPrimary = "#DCDDDE",
+            TextSecondary = "#8E9297",
+            TextDisabled = "#72767D",
+            ActionDefault = "#B9BBBE",
+            ActionDisabled = "#72767D",
+            ActionDisabledBackground = "#2F3136",
+            LinesDefault = "#2F3136",
+            LinesInputs = "#202225",
+            TableLines = "#2F3136",
+            TableStriped = "#2F3136",
+            TableHover = "#36393F",
+            Divider = "#2F3136",
+            DividerLight = "#202225",
             HoverOpacity = 0.08,
             RippleOpacity = 0.15,
-            OverlayDark = "rgba(10, 15, 13, 0.7)",
-            OverlayLight = "rgba(10, 15, 13, 0.4)",
-            GrayDefault = "#2E5E2E",
-            GrayLight = "#4A7C4A",
-            GrayLighter = "#6B9E6B",
-            GrayDark = "#1A3D1A",
-            GrayDarker = "#0F260F"
+            OverlayDark = "rgba(0, 0, 0, 0.7)",
+            OverlayLight = "rgba(0, 0, 0, 0.4)",
+            GrayDefault = "#B9BBBE",
+            GrayLight = "#DCDDDE",
+            GrayLighter = "#FFFFFF",
+            GrayDark = "#8E9297",
+            GrayDarker = "#72767D"
         },
 
         PaletteLight = new PaletteLight
@@ -365,7 +357,7 @@
     private string ThemeClass => IsDarkMode ? "dark-mode" : "light-mode";
 
     private string ContentStyle => IsDarkMode
-        ? "padding-top: 64px; min-height: 100vh; background: linear-gradient(rgba(10, 15, 13, 0.82), rgba(10, 15, 13, 0.92)), url('images/background.jpg') center/cover no-repeat fixed;"
+        ? "padding-top: 64px; min-height: 100vh; background: linear-gradient(rgba(54, 57, 63, 0.85), rgba(32, 34, 37, 0.95)), url('images/background.jpg') center/cover no-repeat fixed;"
         : "padding-top: 64px; min-height: 100vh; background: linear-gradient(rgba(248, 250, 252, 0.88), rgba(248, 250, 252, 0.94)), url('images/background.jpg') center/cover no-repeat fixed;";
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

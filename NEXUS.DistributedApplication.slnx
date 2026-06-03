@@ -8,6 +8,8 @@
     <Project Path="DAWNBRINGER.WebPortal.UI/DAWNBRINGER.WebPortal.UI.csproj" />
     <Project Path="KONGOR.MasterServer/KONGOR.MasterServer.csproj" />
     <Project Path="MERRICK.DatabaseContext/MERRICK.DatabaseContext.csproj" />
+    <Project Path="MERRICK.PasswordUtility/MERRICK.PasswordUtility.csproj" />
+    <Project Path="OBSERVER.DiscordBot/OBSERVER.DiscordBot.csproj" />
     <Project Path="TRANSMUTANSTEIN.ChatServer/TRANSMUTANSTEIN.ChatServer.csproj" />
     <Project Path="ZORGATH.WebPortal.API/ZORGATH.WebPortal.API.csproj" />
 </Solution>
