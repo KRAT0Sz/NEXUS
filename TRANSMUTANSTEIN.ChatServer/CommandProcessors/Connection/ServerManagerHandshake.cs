@@ -1,0 +1,177 @@
+﻿namespace TRANSMUTANSTEIN.ChatServer.CommandProcessors.Connection;
+
+[ChatCommand(ChatProtocol.ServerManagerToChatServer.NET_CHAT_SM_CONNECT)]
+public class ServerManagerHandshake(IDatabase distributedCacheStore, MerrickContext databaseContext) : IAsynchronousCommandProcessor<MatchServerManagerChatSession>
+{
+    public async Task Process(MatchServerManagerChatSession session, ChatBuffer buffer)
+    {
+        ServerManagerHandshakeRequestData requestData = new (buffer);
+
+        // Set Match Server Manager Metadata On Session
+        // This Needs To Be Set At The First Opportunity So That Any Subsequent Code Logic Can Have Access To The Match Server Manager's Metadata
+        session.Metadata = requestData.ToMetadata();
+
+        // Validate Protocol Version
+        if (requestData.ChatProtocolVersion != ChatProtocol.CHAT_PROTOCOL_EXTERNAL_VERSION)
+        {
+            Log.Warning(@"Match Server Manager ID ""{MatchServerManagerID}"" Chat Protocol Version Mismatch (Expected: ""{ExpectedVersion}"", Received: ""{ReceivedVersion}"")",
+                requestData.ServerManagerID, ChatProtocol.CHAT_PROTOCOL_EXTERNAL_VERSION, requestData.ChatProtocolVersion);
+
+            ChatBuffer rejectResponse = new ();
+
+            rejectResponse.WriteCommand(ChatProtocol.ChatServerToGameServer.NET_CHAT_GS_REJECT);
+            rejectResponse.WriteString($@"Chat Protocol Version Mismatch: Expected ""{ChatProtocol.CHAT_PROTOCOL_EXTERNAL_VERSION}"", Received ""{requestData.ChatProtocolVersion}""");
+
+            session.Send(rejectResponse);
+            await session.Terminate(distributedCacheStore);
+
+            return;
+        }
+
+        MatchServerManager? manager = await distributedCacheStore.GetMatchServerManagerBySessionCookie(requestData.SessionCookie);
+
+        // Validate Server Manager Cookie Against Distributed Cache
+        if (manager is null)
+        {
+            Log.Warning(@"Match Server Manager ID ""{MatchServerManagerID}"" Cookie ""{MatchServerManagerCookie}"" Is Invalid", requestData.ServerManagerID, requestData.SessionCookie);
+
+            ChatBuffer rejectResponse = new ();
+
+            rejectResponse.WriteCommand(ChatProtocol.ChatServerToGameServer.NET_CHAT_GS_REJECT);
+            rejectResponse.WriteString("The Session Cookie Provided For Chat Server Manager Authentication Is Invalid");
+
+            session.Send(rejectResponse);
+            await session.Terminate(distributedCacheStore);
+
+            return;
+        }
+
+        // Validate Server Manager ID Match
+        if (manager.ID != requestData.ServerManagerID)
+        {
+            Log.Warning(@"Match Server Manager ID ""{MatchServerManagerID}"" Does Not Match The Server Manager ID With Session Cookie ""{MatchServerManagerCookie}""", requestData.ServerManagerID, requestData.SessionCookie);
+
+            ChatBuffer rejectResponse = new ();
+
+            rejectResponse.WriteCommand(ChatProtocol.ChatServerToGameServer.NET_CHAT_GS_REJECT);
+            rejectResponse.WriteString($@"Match Server Manager ID Mismatch: Received ""{manager.ID}""");
+
+            session.Send(rejectResponse);
+            await session.Terminate(distributedCacheStore);
+
+            return;
+        }
+
+        Account? hostAccount = await databaseContext.Accounts.FindAsync(manager.HostAccountID);
+
+        // Validate Host Account Against Database
+        if (hostAccount is null)
+        {
+            Log.Warning(@"Could Not Find Host Account ID ""{HostAccountID}"" For Match Server Manager ID ""{MatchServerManagerID}"")", manager.HostAccountID, requestData.ServerManagerID);
+
+            ChatBuffer rejectResponse = new ();
+
+            rejectResponse.WriteCommand(ChatProtocol.ChatServerToGameServer.NET_CHAT_GS_REJECT);
+            rejectResponse.WriteString("Match Server Manager Host Account Not Found");
+
+            session.Send(rejectResponse);
+            await session.Terminate(distributedCacheStore);
+
+            return;
+        }
+
+        // Set Host Account On Match Server Manager Session
+        session.Account = hostAccount;
+
+        // Validate Match Hosting Permissions
+        if (hostAccount.Type != AccountType.ServerHost)
+        {
+            Log.Warning(@"Host Account ID ""{HostAccountID}"" For Match Server Manager ID ""{MatchServerManagerID}"" Does Not Have Match Hosting Permissions", manager.HostAccountID, requestData.ServerManagerID);
+
+            ChatBuffer rejectResponse = new ();
+
+            rejectResponse.WriteCommand(ChatProtocol.ChatServerToGameServer.NET_CHAT_GS_REJECT);
+            rejectResponse.WriteString("The Match Server Manager Host Account Does Not Have Match Hosting Permissions");
+
+            session.Send(rejectResponse);
+            await session.Terminate(distributedCacheStore);
+
+            return;
+        }
+
+        // Validate Host Account ID Match
+        if (hostAccount.ID != manager.HostAccountID)
+        {
+            Log.Warning(@"Match Server Manager Host Account ID ""{ReceivedHostAccountID}"" Does Not Match The Host Account ID ""{ExpectedHostAccountID}"" For Match Server Manager ID ""{MatchServerManagerID}""",
+                manager.HostAccountID, hostAccount.ID, requestData.ServerManagerID);
+
+            ChatBuffer rejectResponse = new ();
+
+            rejectResponse.WriteCommand(ChatProtocol.ChatServerToGameServer.NET_CHAT_GS_REJECT);
+            rejectResponse.WriteString($@"Match Server Manager Host Account ID Mismatch: Received ""{manager.HostAccountID}""");
+
+            session.Send(rejectResponse);
+            await session.Terminate(distributedCacheStore);
+
+            return;
+        }
+
+        // Register This Session As The Current Holder Before Superseding Any Previous One, So The Pool Never Briefly Exposes A Disposed Session To Concurrent Readers
+        Context.MatchServerManagerChatSessions.TryGetValue(requestData.ServerManagerID, out MatchServerManagerChatSession? existingSession);
+
+        // Register Match Server Manager
+        Context.MatchServerManagerChatSessions[requestData.ServerManagerID] = session;
+
+        // Supersede Any Existing Session For This Match Server Manager
+        // The Host Is Reconnecting With Its Reused Session Cookie, So The Stale Socket Is Torn Down But The Shared Host State (Cache Entry And Hosting Lease) Is Preserved For This New Session
+        // The Hosting Lease Enforced At Authentication Guarantees Only The Legitimate Holder Can Present A Valid Cookie, So Any Connection Reaching This Point Is That Holder
+        if (existingSession is not null)
+        {
+            Log.Information(@"Superseding Existing Match Server Manager Session With ID ""{MatchServerManagerID}"" And Address ""{MatchServerManagerAddress}""", requestData.ServerManagerID, manager.IPAddress);
+
+            existingSession.Supersede();
+        }
+
+        // Renew The Single-Holder Hosting Lease On Every (Re)Connection So An Actively-Connected Manager Retains The Account
+        await distributedCacheStore.RenewHostLease(hostAccount.Name);
+
+        Log.Information(@"Match Server Manager Connection Accepted - Manager ID: ""{MatchServerManagerID}"", Host Account: ""{HostAccountName}"", Address: ""{MatchServerManagerAddress}""",
+            requestData.ServerManagerID, manager.HostAccountName, manager.IPAddress);
+
+        // Accept Connection And Send Configuration
+        session
+            .SetOnline()
+            .SendOptions();
+
+        Log.Debug(@"Match Server Manager ID ""{MatchServerManagerID}"" Options - Statistics: Enabled, Replays: Enabled, HTTP Upload: Enabled", requestData.ServerManagerID);
+    }
+}
+
+file class ServerManagerHandshakeRequestData
+{
+    public byte[] CommandBytes { get; init; }
+
+    public int ServerManagerID { get; init; }
+
+    public string SessionCookie { get; init; }
+
+    public int ChatProtocolVersion { get; init; }
+
+    public ServerManagerHandshakeRequestData(ChatBuffer buffer)
+    {
+        CommandBytes = buffer.ReadCommandBytes();
+        ServerManagerID = buffer.ReadInt32();
+        SessionCookie = buffer.ReadString();
+        ChatProtocolVersion = buffer.ReadInt32();
+    }
+
+    public MatchServerManagerChatSessionMetadata ToMetadata()
+    {
+        return new MatchServerManagerChatSessionMetadata()
+        {
+            ServerManagerID = ServerManagerID,
+            SessionCookie = SessionCookie,
+            ChatProtocolVersion = ChatProtocolVersion
+        };
+    }
+}

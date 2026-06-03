@@ -1,0 +1,213 @@
+﻿namespace TRANSMUTANSTEIN.ChatServer.CommandProcessors.Connection;
+
+[ChatCommand(ChatProtocol.GameServerToChatServer.NET_CHAT_GS_CONNECT)]
+public class ServerHandshake(IDatabase distributedCacheStore, MerrickContext databaseContext, IOptions<MatchServerSettings> matchServerSettings) : IAsynchronousCommandProcessor<MatchServerChatSession>
+{
+    public async Task Process(MatchServerChatSession session, ChatBuffer buffer)
+    {
+        ServerHandshakeRequestData requestData = new (buffer);
+
+        // Set Match Server Metadata On Session
+        // This Needs To Be Set At The First Opportunity So That Any Subsequent Code Logic Can Have Access To The Match Server's Metadata
+        session.Metadata = requestData.ToMetadata();
+
+        // Validate Protocol Version
+        if (requestData.ChatProtocolVersion != ChatProtocol.CHAT_PROTOCOL_EXTERNAL_VERSION)
+        {
+            Log.Warning(@"Match Server ID ""{MatchServerID}"" Chat Protocol Version Mismatch (Expected: ""{ExpectedVersion}"", Received: ""{ReceivedVersion}"")",
+                requestData.ServerID, ChatProtocol.CHAT_PROTOCOL_EXTERNAL_VERSION, requestData.ChatProtocolVersion);
+
+            ChatBuffer rejectResponse = new ();
+
+            rejectResponse.WriteCommand(ChatProtocol.ChatServerToGameServer.NET_CHAT_GS_REJECT);
+            rejectResponse.WriteString($@"Chat Protocol Version Mismatch: Expected ""{ChatProtocol.CHAT_PROTOCOL_EXTERNAL_VERSION}"", Received ""{requestData.ChatProtocolVersion}""");
+
+            session.Send(rejectResponse);
+            await session.Terminate(distributedCacheStore);
+
+            return;
+        }
+
+        MatchServer? server = await distributedCacheStore.GetMatchServerBySessionCookie(requestData.SessionCookie);
+
+        // Validate Server Cookie Against Distributed Cache
+        if (server is null)
+        {
+            Log.Warning(@"Match Server ID ""{MatchServerID}"" Cookie ""{MatchServerCookie}"" Is Invalid", requestData.ServerID, requestData.SessionCookie);
+
+            ChatBuffer rejectResponse = new ();
+
+            rejectResponse.WriteCommand(ChatProtocol.ChatServerToGameServer.NET_CHAT_GS_REJECT);
+            rejectResponse.WriteString("The Session Cookie Provided For Chat Server Authentication Is Invalid");
+
+            session.Send(rejectResponse);
+            await session.Terminate(distributedCacheStore);
+
+            return;
+        }
+
+        // Validate Server ID Match
+        if (server.ID != requestData.ServerID)
+        {
+            Log.Warning(@"Match Server ID ""{MatchServerID}"" Does Not Match The Server ID With Session Cookie ""{MatchServerCookie}""",requestData.ServerID, requestData.SessionCookie);
+
+            ChatBuffer rejectResponse = new ();
+
+            rejectResponse.WriteCommand(ChatProtocol.ChatServerToGameServer.NET_CHAT_GS_REJECT);
+            rejectResponse.WriteString($@"Match Server ID Mismatch: Received ""{server.ID}""");
+
+            session.Send(rejectResponse);
+            await session.Terminate(distributedCacheStore);
+
+            return;
+        }
+
+        Account? hostAccount = await databaseContext.Accounts.FindAsync(server.HostAccountID);
+
+        // Validate Host Account Against Database
+        if (hostAccount is null)
+        {
+            Log.Warning(@"Could Not Find Host Account ID ""{HostAccountID}"" For Match Server ID ""{MatchServerID}"")", server.HostAccountID, requestData.ServerID);
+
+            ChatBuffer rejectResponse = new ();
+
+            rejectResponse.WriteCommand(ChatProtocol.ChatServerToGameServer.NET_CHAT_GS_REJECT);
+            rejectResponse.WriteString("Match Server Host Account Not Found");
+
+            session.Send(rejectResponse);
+            await session.Terminate(distributedCacheStore);
+
+            return;
+        }
+
+        // Set Host Account On Match Server Session
+        session.Account = hostAccount;
+
+        // Validate Match Hosting Permissions
+        if (hostAccount.Type != AccountType.ServerHost)
+        {
+            Log.Warning(@"Host Account ID ""{HostAccountID}"" For Match Server ID ""{MatchServerID}"" Does Not Have Match Hosting Permissions", server.HostAccountID, requestData.ServerID);
+
+            ChatBuffer rejectResponse = new ();
+
+            rejectResponse.WriteCommand(ChatProtocol.ChatServerToGameServer.NET_CHAT_GS_REJECT);
+            rejectResponse.WriteString("The Match Server Host Account Does Not Have Match Hosting Permissions");
+
+            session.Send(rejectResponse);
+            await session.Terminate(distributedCacheStore);
+
+            return;
+        }
+
+        // Validate Host Account ID Match
+        if (hostAccount.ID != server.HostAccountID)
+        {
+            Log.Warning(@"Match Server Host Account ID ""{ReceivedHostAccountID}"" Does Not Match The Host Account ID ""{ExpectedHostAccountID}"" For Match Server ID ""{MatchServerID}""",
+                server.HostAccountID, hostAccount.ID, requestData.ServerID);
+
+            ChatBuffer rejectResponse = new ();
+
+            rejectResponse.WriteCommand(ChatProtocol.ChatServerToGameServer.NET_CHAT_GS_REJECT);
+            rejectResponse.WriteString($@"Match Server Host Account ID Mismatch: Received ""{server.HostAccountID}""");
+
+            session.Send(rejectResponse);
+            await session.Terminate(distributedCacheStore);
+
+            return;
+        }
+
+        // Register This Session As The Current Holder Before Superseding Any Previous One, So The Pool Never Briefly Exposes A Disposed Session To Concurrent Readers Such As Matchmaking Server Selection
+        Context.MatchServerChatSessions.TryGetValue(requestData.ServerID, out MatchServerChatSession? existingSession);
+
+        // Register Match Server
+        Context.MatchServerChatSessions[requestData.ServerID] = session;
+
+        // Supersede Any Existing Session For This Match Server
+        // The Host Is Reconnecting With Its Reused Session Cookie, So The Stale Socket Is Torn Down But The Distributed Cache Entry Is Preserved For This New Session
+        if (existingSession is not null)
+        {
+            Log.Information(@"Superseding Existing Match Server Session With ID ""{MatchServerID}"" And Address ""{MatchServerAddress}:{MatchServerPort}""", requestData.ServerID, server.IPAddress, server.Port);
+
+            existingSession.Supersede();
+        }
+
+        Log.Information(@"Match Server Connection Accepted - Server ID: ""{MatchServerID}"", Host Account: ""{HostAccountName}"", Address: ""{MatchServerAddress}:{MatchServerPort}"", Location: ""{Location}""",
+            requestData.ServerID, server.HostAccountName, server.IPAddress, server.Port, server.Location);
+
+        string uniqueServerName = Random.Shared.Next().ToString("X8"); // TODO: Use The Original Name As Identifier, To Verify Server Binaries Checksum
+
+        MatchServerSettings settings = matchServerSettings.Value;
+
+        List<string> remoteCommands =
+        [
+            // Tick Rate (svr_gameFPS: Range 1–60, Default 20)
+            $"svr_gameFPS {settings.TickRate}",
+
+            // Match Statistics Submission
+            $"svr_submitMatchStatItems {BooleanToString(settings.SubmitMatchStatisticsItems)}",
+            $"svr_submitMatchStatAbilities {BooleanToString(settings.SubmitMatchStatisticsAbilities)}",
+            $"svr_submitMatchStatFrags {BooleanToString(settings.SubmitMatchStatisticsFrags)}",
+
+            // Network Visibility
+            $"svr_broadcast {BooleanToString(settings.Broadcast)}",
+
+            // Server Identity
+            $"svr_name {uniqueServerName}"
+        ];
+
+        // Maximum Outgoing Bandwidth Per Client (0 Uses Game Server Default)
+        if (settings.MaxBytesPerSecond > 0)
+            remoteCommands.Add($"svr_maxbps {settings.MaxBytesPerSecond}");
+
+        // Long Frame Warning Time In Milliseconds (0 Disables The Warning)
+        if (settings.LongFrameWarnTime > 0)
+            remoteCommands.Add($"svr_longFrameWarnTime {settings.LongFrameWarnTime}");
+
+        // Confirmation Echo Is Always Last So That It Only Appears After All Commands Have Been Processed
+        remoteCommands.Add("echo Project KONGOR Remote Configuration Was Injected Successfully");
+
+        // Accept Connection And Send Configuration
+        session
+            .SetOnline()
+            .SendOptions(remoteCommands);
+
+        server.Name = uniqueServerName;
+
+        // Update The Match Server Name In The Distributed Cache
+        await distributedCacheStore.SetMatchServer(server.HostAccountName, server);
+    }
+
+    /// <summary>
+    ///     Converts a boolean value to the HON console variable string representation.
+    /// </summary>
+    private static string BooleanToString(bool value) => value ? "true" : "false";
+}
+
+file class ServerHandshakeRequestData
+{
+    public byte[] CommandBytes { get; init; }
+
+    public int ServerID { get; init; }
+
+    public string SessionCookie { get; init; }
+
+    public int ChatProtocolVersion { get; init; }
+
+    public ServerHandshakeRequestData(ChatBuffer buffer)
+    {
+        CommandBytes = buffer.ReadCommandBytes();
+        ServerID = buffer.ReadInt32();
+        SessionCookie = buffer.ReadString();
+        ChatProtocolVersion = buffer.ReadInt32();
+    }
+
+    public MatchServerChatSessionMetadata ToMetadata()
+    {
+        return new MatchServerChatSessionMetadata()
+        {
+            ServerID = ServerID,
+            SessionCookie = SessionCookie,
+            ChatProtocolVersion = ChatProtocolVersion
+        };
+    }
+}

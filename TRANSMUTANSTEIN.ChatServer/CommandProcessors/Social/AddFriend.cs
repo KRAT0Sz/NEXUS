@@ -1,0 +1,32 @@
+namespace TRANSMUTANSTEIN.ChatServer.CommandProcessors.Social;
+
+/// <summary>
+///     Handles friend addition requests.
+///     Adds the target account to the requester's friend list, and persists the changes to the database.
+///     If the target has already made a friend addition request to the requester, immediately creates a bi-directional friendship.
+/// </summary>
+[ChatCommand(ChatProtocol.Command.CHAT_CMD_REQUEST_BUDDY_ADD)]
+public class AddFriend(MerrickContext merrick, IDatabase distributedCacheStore) : IAsynchronousCommandProcessor<ClientChatSession>
+{
+    public async Task Process(ClientChatSession session, ChatBuffer buffer)
+    {
+        AddFriendRequestData requestData = new (buffer);
+
+        await Friend
+            .WithAccountName(requestData.FriendNickname)
+            .Add(session, merrick, distributedCacheStore);
+    }
+}
+
+file class AddFriendRequestData
+{
+    public byte[] CommandBytes { get; init; }
+
+    public string FriendNickname { get; init; }
+
+    public AddFriendRequestData(ChatBuffer buffer)
+    {
+        CommandBytes = buffer.ReadCommandBytes();
+        FriendNickname = buffer.ReadString();
+    }
+}

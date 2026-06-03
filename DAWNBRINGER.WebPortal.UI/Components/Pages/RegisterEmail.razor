@@ -1,0 +1,161 @@
+@page "/register"
+
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+
+<PageTitle>Register - Project KONGOR</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="px-4 py-12">
+    <div class="re-hero">
+        <div class="re-icon-wrap">
+            <MudIcon Icon="@Icons.Custom.Brands.Discord" Size="Size.Large" Class="re-discord-icon" />
+        </div>
+        <MudText Typo="Typo.h4" Class="re-title">Join Project KONGOR</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="re-subtitle">
+            Register with your Discord account. No email or password required.
+        </MudText>
+    </div>
+
+    <div class="re-form-card">
+        <MudStack AlignItems="AlignItems.Center" Spacing="3">
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Align="Align.Center" Class="re-desc">
+                Create your account instantly using your Discord account.
+                Your Discord username will be your in-game name.
+            </MudText>
+
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Size="Size.Large"
+                       Class="re-discord-btn"
+                       FullWidth="true"
+                       OnClick="HandleDiscordClick"
+                       Disabled="Processing">
+                @if (Processing)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                    <MudText>Redirecting...</MudText>
+                }
+                else
+                {
+                    <MudIcon Icon="@Icons.Custom.Brands.Discord" Size="Size.Small" Class="mr-2" />
+                    <MudText>Continue with Discord</MudText>
+                }
+            </MudButton>
+        </MudStack>
+    </div>
+
+    @if (DiscordError)
+    {
+        <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="re-error-alert">
+            <MudText Typo="Typo.body2">
+                @DiscordErrorMessage
+            </MudText>
+        </MudAlert>
+    }
+
+    <MudText Align="Align.Center" Class="re-footer">
+        Already have an account?
+        <MudLink Href="/login" Color="Color.Primary" Underline="Underline.Always">Sign in</MudLink>
+    </MudText>
+</MudContainer>
+
+<style>
+    .re-hero {
+        text-align: center;
+        margin-bottom: 1.75rem;
+    }
+
+    .re-icon-wrap {
+        width: 64px;
+        height: 64px;
+        margin: 0 auto 1rem;
+        border-radius: 50%;
+        background: rgba(88, 101, 242, 0.12);
+        border: 2px solid rgba(88, 101, 242, 0.35);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: re-float 3s ease-in-out infinite;
+    }
+
+    @@keyframes re-float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-4px); }
+    }
+
+    .re-discord-icon {
+        font-size: 2rem;
+        color: #5865F2;
+    }
+
+    .re-title {
+        font-weight: 700;
+        margin-bottom: 0.375rem;
+    }
+
+    .re-subtitle {
+        max-width: 320px;
+        margin: 0 auto;
+        line-height: 1.6;
+    }
+
+    .re-form-card {
+        background: rgba(var(--kongor-surface-rgb), 0.55);
+        border: 1px solid rgba(var(--kongor-primary-rgb), 0.08);
+        border-radius: 8px;
+        padding: 1.5rem;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        margin-bottom: 1rem;
+    }
+
+    .re-desc {
+        line-height: 1.7;
+    }
+
+    .re-discord-btn {
+        text-transform: none !important;
+        font-weight: 600;
+        font-size: 0.9375rem;
+        background: #5865F2 !important;
+        border-radius: 4px;
+        height: 46px;
+        transition: filter 0.2s ease, transform 0.2s ease;
+    }
+
+    .re-discord-btn:hover:not(:disabled) {
+        filter: brightness(1.12);
+        transform: translateY(-1px);
+    }
+
+    .re-error-alert {
+        margin-bottom: 1rem;
+        border-radius: 4px;
+    }
+
+    .re-footer {
+        color: rgba(var(--kongor-surface-rgb), 0.6);
+        font-size: 0.875rem;
+    }
+</style>
+
+@code {
+
+    private bool Processing { get; set; }
+
+    private bool DiscordError { get; set; }
+
+    private string DiscordErrorMessage { get; set; } = string.Empty;
+
+    private void HandleDiscordClick()
+    {
+        Processing = true;
+        DiscordError = false;
+
+        Uri currentUri = NavigationManager.ToAbsoluteUri(NavigationManager.BaseUri);
+
+        string apiBase = $"https://{currentUri.Host}:5556";
+
+        NavigationManager.NavigateTo($"{apiBase}/Discord/Authentication", forceLoad: true);
+    }
+}

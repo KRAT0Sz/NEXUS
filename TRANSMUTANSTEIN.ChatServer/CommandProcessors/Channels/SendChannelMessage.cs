@@ -1,0 +1,83 @@
+namespace TRANSMUTANSTEIN.ChatServer.CommandProcessors.Channels;
+
+[ChatCommand(ChatProtocol.Command.CHAT_CMD_CHANNEL_MSG)]
+public class SendChannelMessage(FloodPreventionService floodPreventionService) : ISynchronousCommandProcessor<ClientChatSession>
+{
+    public void Process(ClientChatSession session, ChatBuffer buffer)
+    {
+        SendChannelMessageRequestData requestData = new (buffer);
+
+        // Silently Drop Empty Messages
+        if (string.IsNullOrEmpty(requestData.Message))
+            return;
+
+        // Check Flood Prevention (Service Handles Both Check And Response)
+        if (floodPreventionService.CheckAndHandleFloodPrevention(session) is false)
+            return;
+
+        ChatChannel? channel = Context.ChatChannels.Values
+            .SingleOrDefault(chatChannel => chatChannel.ID == requestData.ChannelID);
+
+        // An Unknown Channel ID Implies The Server Lost A Channel It Previously Announced Or The Client Sent A Malformed ID
+        if (channel is null)
+        {
+            Log.Error(@"[BUG] Account ""{AccountName}"" Sent A Channel Message For Unknown Channel ID {ChannelID}", session.Account.Name, requestData.ChannelID);
+
+            return;
+        }
+
+        // Silently Drop Messages For Channels The Sender Is Not A Member Of
+        if (channel.Members.ContainsKey(session.Account.Name) is false)
+            return;
+
+        // Check If The Sender Is Silenced In This Channel
+        if (channel.IsSilenced(session))
+        {
+            ChatBuffer response = new ();
+
+            response.WriteCommand(ChatProtocol.Command.CHAT_CMD_CHANNEL_SILENCED);
+            response.WriteInt32(requestData.ChannelID); // Channel ID
+
+            session.Send(response);
+
+            return;
+        }
+
+        string messageContent = requestData.Message;
+
+        // Enforce Message Content Length Limit
+        // Staff Accounts Are Exempt From Message Length Restrictions, For Moderation And Administration Purposes
+        if (session.Account.Type is not AccountType.Staff && messageContent.Length > ChatProtocol.CHAT_MESSAGE_MAX_LENGTH)
+        {
+            messageContent = messageContent[.. ChatProtocol.CHAT_MESSAGE_MAX_LENGTH];
+
+            // TODO: Notify The Sender That Their Message Was Truncated
+        }
+
+        // Broadcast The Message To All Channel Members Except The Sender
+        ChatBuffer broadcast = new ();
+
+        broadcast.WriteCommand(ChatProtocol.Command.CHAT_CMD_CHANNEL_MSG);
+        broadcast.WriteInt32(session.Account.ID);    // Sender Account ID
+        broadcast.WriteInt32(requestData.ChannelID); // Channel ID
+        broadcast.WriteString(messageContent);       // Message Content (Potentially Truncated)
+
+        channel.BroadcastMessage(broadcast, excludeAccountID: session.Account.ID);
+    }
+}
+
+file class SendChannelMessageRequestData
+{
+    public byte[] CommandBytes { get; init; }
+
+    public string Message { get; init; }
+
+    public int ChannelID { get; init; }
+
+    public SendChannelMessageRequestData(ChatBuffer buffer)
+    {
+        CommandBytes = buffer.ReadCommandBytes();
+        Message = buffer.ReadString();
+        ChannelID = buffer.ReadInt32();
+    }
+}

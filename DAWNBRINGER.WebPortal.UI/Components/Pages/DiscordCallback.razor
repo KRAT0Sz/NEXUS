@@ -1,0 +1,296 @@
+@page "/discord/callback"
+
+@using System.Web
+@inject NavigationManager NavigationManager
+@inject PortalAuthenticationService AuthenticationService
+@inject ISnackbar Snackbar
+@inject ILogger<DiscordCallback> Logger
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="px-4 py-16">
+    <MudStack Justify="Justify.Center" AlignItems="AlignItems.Center" Spacing="5">
+
+        @if (ShowSuccess)
+        {
+            <div class="dc-icon-ring discord-glow">
+                <MudIcon Icon="@Icons.Custom.Brands.Discord" Size="Size.Large" />
+            </div>
+            <MudText Typo="Typo.h4" Align="Align.Center" Class="dc-title">Check Your Discord DMs</MudText>
+            <MudText Typo="Typo.body1" Color="Color.Secondary" Align="Align.Center" Class="dc-body">
+                A registration link has been sent to your Discord account.
+                Click the link in your DM to complete your account registration.
+            </MudText>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Href="/login"
+                       Size="Size.Medium"
+                       Class="dc-action-btn">
+                <MudIcon Icon="@Icons.Material.Filled.Login" Size="Size.Small" Class="mr-2" />
+                Back To Login
+            </MudButton>
+        }
+        else if (ShowPasswordResetSuccess)
+        {
+            <div class="dc-icon-ring discord-glow">
+                <MudIcon Icon="@Icons.Custom.Brands.Discord" Size="Size.Large" />
+            </div>
+            <MudText Typo="Typo.h4" Align="Align.Center" Class="dc-title">Check Your Discord DMs</MudText>
+            <MudText Typo="Typo.body1" Color="Color.Secondary" Align="Align.Center" Class="dc-body">
+                @PasswordResetMessage
+            </MudText>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Href="/login"
+                       Size="Size.Medium"
+                       Class="dc-action-btn">
+                <MudIcon Icon="@Icons.Material.Filled.Login" Size="Size.Small" Class="mr-2" />
+                Back To Login
+            </MudButton>
+        }
+        else if (ShowError)
+        {
+            <div class="dc-icon-ring dc-icon-error">
+                <MudIcon Icon="@Icons.Material.Filled.ErrorOutline" Size="Size.Large" />
+            </div>
+            <MudText Typo="Typo.h4" Align="Align.Center" Class="dc-title">Authentication Failed</MudText>
+            <MudText Typo="Typo.body1" Color="Color.Secondary" Align="Align.Center" Class="dc-body">
+                @ErrorMessage
+            </MudText>
+            @if (DebugInfo is not null)
+            {
+                <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="dc-debug">
+                    <MudText Typo="Typo.caption">Debug: @DebugInfo</MudText>
+                </MudAlert>
+            }
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Primary"
+                       Href="/register"
+                       Size="Size.Medium"
+                       Class="dc-action-btn">
+                <MudIcon Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Small" Class="mr-2" />
+                Back To Register
+            </MudButton>
+        }
+        else
+        {
+            <MudProgressCircular Size="Size.Large" Color="Color.Primary" Indeterminate="true" />
+            <MudText Typo="Typo.body1" Color="Color.Secondary">Processing...</MudText>
+        }
+    </MudStack>
+</MudContainer>
+
+<style>
+    .dc-icon-ring {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: rgba(88, 101, 242, 0.12);
+        border: 2px solid rgba(88, 101, 242, 0.4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #5865F2;
+        animation: dc-pulse 2s ease-in-out infinite;
+    }
+
+    @@keyframes dc-pulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(88, 101, 242, 0.4); }
+        50% { box-shadow: 0 0 0 12px rgba(88, 101, 242, 0); }
+    }
+
+    .dc-icon-error {
+        background: rgba(var(--kongor-red-rgb), 0.1);
+        border-color: rgba(var(--kongor-red-rgb), 0.4);
+        color: var(--kongor-red);
+        animation: none;
+    }
+
+    .dc-title {
+        font-weight: 700;
+    }
+
+    .dc-body {
+        max-width: 320px;
+        line-height: 1.7;
+    }
+
+    .dc-action-btn {
+        text-transform: none !important;
+        font-weight: 600;
+        border-radius: 4px;
+    }
+
+    .dc-debug {
+        max-width: 400px;
+        word-break: break-all;
+        border-radius: 4px;
+    }
+</style>
+
+@code {
+
+    private bool ShowSuccess { get; set; }
+
+    private bool ShowPasswordResetSuccess { get; set; }
+
+    private string PasswordResetMessage { get; set; } = string.Empty;
+
+    private bool ShowError { get; set; }
+
+    private string ErrorMessage { get; set; } = string.Empty;
+
+    private string? DebugInfo { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Uri currentUri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+
+        DebugInfo = $"URL: {currentUri}";
+
+        System.Collections.Specialized.NameValueCollection queryParams = HttpUtility.ParseQueryString(currentUri.Query);
+
+        DebugInfo += $" | Params: [{currentUri.Query}]";
+
+        string? errorValue = queryParams["error"];
+        if (!string.IsNullOrWhiteSpace(errorValue))
+        {
+            Logger.LogWarning("Discord OAuth error received: {Error}", errorValue);
+
+            ErrorMessage = errorValue switch
+            {
+                "access_denied" => "You cancelled the Discord authorization. Please try again.",
+                "redirect_uri_mismatch" => "Discord redirect URI mismatch. Please contact support.",
+                _ => $"Discord authentication failed: {errorValue}"
+            };
+
+            ShowError = true;
+            return;
+        }
+
+        if (queryParams["discordRegister"] == "true")
+        {
+            ShowSuccess = true;
+            return;
+        }
+
+        if (queryParams["discordLinked"] == "true")
+        {
+            string? username = queryParams["username"];
+            if (!string.IsNullOrWhiteSpace(username))
+            {
+                Snackbar.Add($"Discord account \"{username}\" has been successfully linked.", Severity.Success);
+            }
+
+            NavigationManager.NavigateTo("/account");
+            return;
+        }
+
+        if (queryParams["discordLoggedIn"] == "true")
+        {
+            string? token = queryParams["token"];
+            if (!string.IsNullOrWhiteSpace(token))
+            {
+                await AuthenticationService.SetToken(token!);
+                Snackbar.Add("Successfully logged in with Discord.", Severity.Success);
+            }
+
+            NavigationManager.NavigateTo("/account");
+            return;
+        }
+
+        string? code = queryParams["code"];
+        string? state = queryParams["state"];
+        if (!string.IsNullOrWhiteSpace(code) && !string.IsNullOrWhiteSpace(state))
+        {
+            await ProcessDiscordCallback(code!, state!);
+            return;
+        }
+
+        Logger.LogWarning("Discord callback reached with no recognised query parameters. Full URL: {Url}", currentUri);
+
+        ErrorMessage = "An unexpected error occurred during Discord authentication.";
+        ShowError = true;
+    }
+
+    private async Task ProcessDiscordCallback(string code, string state)
+    {
+        try
+        {
+            HttpClient httpClient = AuthenticationService.CreateAnonymousClient();
+            string apiUrl = $"Discord/CallbackData?code={Uri.EscapeDataString(code)}&state={Uri.EscapeDataString(state)}";
+
+            HttpResponseMessage response = await httpClient.GetAsync(apiUrl);
+
+            if (response.IsSuccessStatusCode.Equals(false))
+            {
+                string errorContent = await response.Content.ReadAsStringAsync();
+
+                try
+                {
+                    using JsonDocument errorDoc = JsonDocument.Parse(errorContent);
+                    if (errorDoc.RootElement.TryGetProperty("error", out JsonElement errorElement))
+                    {
+                        ErrorMessage = errorElement.GetString() ?? "An error occurred during Discord authentication.";
+                    }
+                    else
+                    {
+                        ErrorMessage = $"Discord authentication failed (HTTP {response.StatusCode}).";
+                    }
+                }
+                catch
+                {
+                    ErrorMessage = $"Discord authentication failed (HTTP {response.StatusCode}).";
+                }
+
+                DebugInfo = $"API Error ({response.StatusCode}): {errorContent}";
+                ShowError = true;
+                return;
+            }
+
+            string responseContent = await response.Content.ReadAsStringAsync();
+            using JsonDocument doc = JsonDocument.Parse(responseContent);
+            JsonElement root = doc.RootElement;
+
+            string callbackType = root.GetProperty("type").GetString()!;
+
+            switch (callbackType)
+            {
+                case "register":
+                    ShowSuccess = true;
+                    return;
+
+                case "passwordreset":
+                    string? message = root.TryGetProperty("message", out JsonElement messageEl) ? messageEl.GetString() : null;
+                    PasswordResetMessage = string.IsNullOrWhiteSpace(message)
+                        ? "A password reset link has been sent to your Discord DMs."
+                        : message;
+                    ShowPasswordResetSuccess = true;
+                    return;
+
+                case "link":
+                case "login":
+                    string jwt = root.GetProperty("token").GetString()!;
+                    await AuthenticationService.SetToken(jwt);
+
+                    string? username = root.TryGetProperty("discordUsername", out JsonElement usernameEl) ? usernameEl.GetString() : null;
+                    Snackbar.Add(callbackType == "link"
+                        ? $"Discord account \"{username}\" has been successfully linked."
+                        : "Successfully logged in with Discord.", Severity.Success);
+
+                    NavigationManager.NavigateTo("/account");
+                    return;
+
+                default:
+                    Logger.LogWarning("Unknown Discord callback type: {CallbackType}", callbackType);
+                    ErrorMessage = $"An unexpected response was received from the server (type: {callbackType}).";
+                    ShowError = true;
+                    return;
+            }
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Exception during Discord callback processing");
+            ErrorMessage = "An unexpected error occurred while processing the Discord authentication response.";
+            ShowError = true;
+        }
+    }
+}

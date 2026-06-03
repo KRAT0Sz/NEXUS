@@ -1,0 +1,31 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.4.0">
+
+    <!--
+        When There Is An Update To The "Aspire.Hosting.AppHost" NuGet Package:
+            1) Update The "Aspire.AppHost.Sdk" SDK Which Includes The "Aspire.Hosting.AppHost" NuGet Package
+            2) Update The Local .NET Tools And, Optionally But Recommended, Also Update The Global .NET Tools
+            3) Update The Aspire Templates With "dotnet new install Aspire.ProjectTemplates" And Check For Service Defaults Updates
+    -->
+
+    <PropertyGroup>
+        <OutputType>exe</OutputType>
+        <IsAspireHost>true</IsAspireHost>
+        <UserSecretsId>00005072-6f6a-6563-7420-4b4f4e474f52</UserSecretsId> <!-- Decode Me ! -->
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Aspire.Hosting.Browsers" Version="13.3.5-preview.1.26270.6" />
+        <PackageReference Include="Aspire.Hosting.Redis" Version="13.4.0" />
+        <PackageReference Include="Aspire.Hosting.Seq" Version="13.4.0" />
+        <PackageReference Include="Aspire.Hosting.SqlServer" Version="13.4.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="../DAWNBRINGER.WebPortal.UI/DAWNBRINGER.WebPortal.UI.csproj" AspireProjectMetadataTypeName="DAWNBRINGER" />
+        <ProjectReference Include="../KONGOR.MasterServer/KONGOR.MasterServer.csproj" AspireProjectMetadataTypeName="KONGOR" />
+        <ProjectReference Include="../MERRICK.DatabaseContext/MERRICK.DatabaseContext.csproj" AspireProjectMetadataTypeName="MERRICK" />
+        <ProjectReference Include="../TRANSMUTANSTEIN.ChatServer/TRANSMUTANSTEIN.ChatServer.csproj" AspireProjectMetadataTypeName="TRANSMUTANSTEIN" />
+        <ProjectReference Include="../ZORGATH.WebPortal.API/ZORGATH.WebPortal.API.csproj" AspireProjectMetadataTypeName="ZORGATH" />
+    </ItemGroup>
+
+</Project>

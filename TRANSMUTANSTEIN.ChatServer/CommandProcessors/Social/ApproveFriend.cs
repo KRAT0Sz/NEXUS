@@ -1,0 +1,31 @@
+namespace TRANSMUTANSTEIN.ChatServer.CommandProcessors.Social;
+
+/// <summary>
+///     Handles friend approval requests.
+///     Approves a pending friend request from another player, creating a bi-directional friendship.
+/// </summary>
+[ChatCommand(ChatProtocol.Command.CHAT_CMD_REQUEST_BUDDY_APPROVE)]
+public class ApproveFriend(MerrickContext merrick, IDatabase distributedCacheStore) : IAsynchronousCommandProcessor<ClientChatSession>
+{
+    public async Task Process(ClientChatSession session, ChatBuffer buffer)
+    {
+        ApproveFriendRequestData requestData = new (buffer);
+
+        await Friend
+            .WithAccountName(requestData.FriendNickname)
+            .Approve(session, merrick, distributedCacheStore);
+    }
+}
+
+file class ApproveFriendRequestData
+{
+    public byte[] CommandBytes { get; init; }
+
+    public string FriendNickname { get; init; }
+
+    public ApproveFriendRequestData(ChatBuffer buffer)
+    {
+        CommandBytes = buffer.ReadCommandBytes();
+        FriendNickname = buffer.ReadString();
+    }
+}
