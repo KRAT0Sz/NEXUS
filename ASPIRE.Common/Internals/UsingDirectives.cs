@@ -1,4 +1,5 @@
-﻿global using ASPIRE.Common.Constants;
+global using ASPIRE.Common.Constants;
+global using ASPIRE.Common.Models.Streamer;
 
 global using Microsoft.AspNetCore.Builder;
 global using Microsoft.AspNetCore.Diagnostics.HealthChecks;

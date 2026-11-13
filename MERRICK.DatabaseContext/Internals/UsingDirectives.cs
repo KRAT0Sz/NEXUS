@@ -1,4 +1,4 @@
-﻿global using ASPIRE.Common.Communication;
+global using ASPIRE.Common.Communication;
 global using ASPIRE.Common.Constants;
 global using ASPIRE.Common.Enumerations.Statistics;
 global using ASPIRE.Common.Extensions.Collections;
@@ -7,10 +7,13 @@ global using ASPIRE.Common.Extensions.Services;
 
 global using MERRICK.DatabaseContext.Constants;
 global using MERRICK.DatabaseContext.Data;
+global using MERRICK.DatabaseContext.Entities.Administration;
 global using MERRICK.DatabaseContext.Entities.Core;
+global using MERRICK.DatabaseContext.Entities.Economy;
 global using MERRICK.DatabaseContext.Entities.Game;
 global using MERRICK.DatabaseContext.Entities.Relational;
 global using MERRICK.DatabaseContext.Entities.Statistics;
+global using MERRICK.DatabaseContext.Entities.Telemetry;
 global using MERRICK.DatabaseContext.Entities.Utility;
 global using MERRICK.DatabaseContext.Enumerations;
 global using MERRICK.DatabaseContext.Extensions;

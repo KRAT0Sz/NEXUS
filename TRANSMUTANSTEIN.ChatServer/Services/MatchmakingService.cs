@@ -296,7 +296,7 @@ public class MatchmakingService : BackgroundService, IDisposable
     /// </summary>
     internal static void RecordQueueDuration(MatchmakingMatch match)
     {
-        QueueType partition = GetQueueTypePartition(match.IsBotMatch ? ChatProtocol.TMMType.TMM_TYPE_COOP : ChatProtocol.TMMType.TMM_TYPE_PVP, match.GameType);
+        QueueType partition = match.QueueType;
 
         if (RecentQueueDurationSecondsSamplesPerPartition.TryGetValue(partition, out ConcurrentQueue<double>? samples))
         {
@@ -339,6 +339,12 @@ public class MatchmakingService : BackgroundService, IDisposable
             group.AssignedTeamGUID = null;
         }
     }
+
+    /// <summary>
+    ///     Gets the active match hosted by the given server, or null if none is registered.
+    /// </summary>
+    public static MatchmakingMatch? GetMatchByServerID(int serverID)
+        => ActiveMatches.Values.SingleOrDefault(match => match.AssignedServerID == serverID);
 
     /// <summary>
     ///     Cleans up every active match hosted by the given server. Removes each match from the active matches registry and returns its groups to an available, re-queueable state.
@@ -412,6 +418,9 @@ public class MatchmakingService : BackgroundService, IDisposable
 
         // Store Match In Active Matches Registry
         ActiveMatches.TryAdd(match.GUID, match);
+
+        // Snapshot The Roster Which CreateMatch Commits, So That A Player Who Leaves Their Group Or The Chat Server Before The Match Is Announced Is Still Locked To It
+        match.CommitRoster();
 
         // Send CreateMatch Command To The Game Server
         SendCreateMatch(match, serverSession);

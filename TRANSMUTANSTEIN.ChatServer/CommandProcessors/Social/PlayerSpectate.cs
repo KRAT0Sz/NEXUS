@@ -35,6 +35,26 @@ public class PlayerSpectate : ISynchronousCommandProcessor<ChatSession>
     {
         SpectateRequestData requestData = new (buffer);
 
+        // Check If Spectatee Has Streamer Mode Active
+        ClientChatSession? targetSession = Context.ClientChatSessions.Values
+            .SingleOrDefault(clientSession => clientSession.Account.Name.Equals(requestData.SpectateeName, StringComparison.OrdinalIgnoreCase));
+
+        if (targetSession is not null && targetSession.IsStreamerModeActive && targetSession.StreamerConfiguration?.BlockSpectate is true)
+        {
+            Log.Information(@"[KONGOR PROTECT] Declining Spectate Request From Account ""{Requester}"" For Protected Streamer ""{Spectatee}""",
+                session.Account.Name, requestData.SpectateeName);
+
+            ChatBuffer declineResponse = new ();
+            declineResponse.WriteCommand(ChatProtocol.Command.CHAT_CMD_PLAYER_SPECTATE_REQUEST);
+            declineResponse.WriteInt8(Convert.ToByte(ChatProtocol.PlayerSpectateRequest.PLAYER_SPECTATE_REQUEST_RESPONSE));
+            declineResponse.WriteString(requestData.SpectateeName);
+            declineResponse.WriteInt8(0); // 0 = Declined
+
+            session.Send(declineResponse);
+
+            return;
+        }
+
         MatchServerChatSession? matchServerSession = Context.MatchServerChatSessions.Values
             .SingleOrDefault(matchServer => string.Equals($"{matchServer.Metadata.Address}:{matchServer.Metadata.Port}", requestData.ServerInformation, StringComparison.OrdinalIgnoreCase));
 

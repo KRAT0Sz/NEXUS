@@ -78,7 +78,9 @@ internal static class MatchmakingAlgorithm
                     // Check Group Makeup Difference (Pool-Size-Aware Tolerance)
                     int groupMakeupDifference = Math.Abs(legionTeam.GroupMakeup - candidateOpponent.GroupMakeup);
 
-                    if (groupMakeupDifference > gameTypeParameters.GroupMakeupTolerance)
+                    bool hasForcedMatchup = legionTeam.Groups.Any(group => group.ForceMatchup) || candidateOpponent.Groups.Any(group => group.ForceMatchup);
+
+                    if (hasForcedMatchup is false && groupMakeupDifference > gameTypeParameters.GroupMakeupTolerance)
                     {
                         Log.Debug(@"Skipping Match Due To Group Makeup Mismatch: {Legion} vs {Hellbourne} (Diff: {Diff}, Tolerance: {Tolerance})",
                             legionTeam.GroupMakeupString, candidateOpponent.GroupMakeupString, groupMakeupDifference, gameTypeParameters.GroupMakeupTolerance);
@@ -208,6 +210,13 @@ internal static class MatchmakingAlgorithm
         if (legionTeam.Groups.Contains(legionGroup) is false || hellbourneTeam.Groups.Contains(hellbourneGroup) is false)
             return;
 
+        // Ensure swapping would not place mutually avoided players on the same team
+        IEnumerable<MatchmakingGroup> remainingLegion = legionTeam.Groups.Where(group => group != legionGroup);
+        IEnumerable<MatchmakingGroup> remainingHellbourne = hellbourneTeam.Groups.Where(group => group != hellbourneGroup);
+
+        if (HasAvoidanceConflict(remainingLegion, hellbourneGroup) || HasAvoidanceConflict(remainingHellbourne, legionGroup))
+            return;
+
         double distanceBefore = Math.Abs(MatchmakingMatch.CalculateMatchupPrediction(legionTeam.EffectiveTeamRating, hellbourneTeam.EffectiveTeamRating, logisticPredictionScale) - 0.5);
 
         SwapGroups(legionTeam, hellbourneTeam, legionGroup, hellbourneGroup);
@@ -238,6 +247,9 @@ internal static class MatchmakingAlgorithm
     /// </summary>
     public static double GetMaxAcceptableTMRSpread(MatchmakingTeam team1, MatchmakingTeam team2, double baseMaxDifference, PoolSizeParameters poolSizeParameters)
     {
+        if (team1.Groups.Any(group => group.ForceMatchup) || team2.Groups.Any(group => group.ForceMatchup))
+            return double.MaxValue;
+
         if (team1.PrefersMatchFidelity || team2.PrefersMatchFidelity)
             return Math.Min(baseMaxDifference, poolSizeParameters.MaximumTMRSpread);
 
@@ -381,6 +393,7 @@ internal static class MatchmakingAlgorithm
                         .Except(usedGroups)
                         .Where(group => group.Members.Count == requiredSize)
                         .Where(group => HasCompatibleQueuePreferences(commonGameModes, commonGameRegions, ranked, group))
+                        .Where(group => HasAvoidanceConflict(teamGroups, group) is false)
                         .OrderBy(group => Math.Abs(group.AverageTMR - teamAverageTMR))
                         .ThenBy(group => group.QueueStartTime)
                         .FirstOrDefault();
@@ -470,6 +483,35 @@ internal static class MatchmakingAlgorithm
             return false;
 
         return true;
+    }
+
+    /// <summary>
+    ///     Checks if any member in the partially-formed team avoids any member of the candidate group, or vice versa.
+    /// </summary>
+    public static bool HasAvoidanceConflict(IEnumerable<MatchmakingGroup> teamGroups, MatchmakingGroup candidateGroup)
+    {
+        HashSet<int> teamAccountIDs = [.. teamGroups.SelectMany(group => group.Members).Where(m => m.Account is not null).Select(member => member.Account.ID)];
+        HashSet<int> candidateAccountIDs = [.. candidateGroup.Members.Where(m => m.Account is not null).Select(member => member.Account.ID)];
+
+        if (teamAccountIDs.Count == 0 || candidateAccountIDs.Count == 0)
+            return false;
+
+        foreach (MatchmakingGroup group in teamGroups)
+        {
+            foreach (MatchmakingGroupMember member in group.Members)
+            {
+                if (member.Session?.AvoidedAccountIDs is { Count: > 0 } avoided && avoided.Overlaps(candidateAccountIDs))
+                    return true;
+            }
+        }
+
+        foreach (MatchmakingGroupMember candidateMember in candidateGroup.Members)
+        {
+            if (candidateMember.Session?.AvoidedAccountIDs is { Count: > 0 } avoided && avoided.Overlaps(teamAccountIDs))
+                return true;
+        }
+
+        return false;
     }
 
     /// <summary>

@@ -109,6 +109,16 @@ public class KONGOR
         // Register The Token Cleanup Background Service Which Periodically Purges Expired Tokens From The Database
         builder.Services.AddHostedService<TokenCleanupService>();
 
+        // Register The Server Status Checker Service Which Verifies Dedicated Game Server Reachability Via UDP
+        builder.Services.AddSingleton<ServerStatusChecker>();
+
+        // Register The Geo Information Resolver Service Which Asynchronously Resolves Player Locations
+        builder.Services.AddHostedService<GeoInformationResolver>();
+
+        // Register The Global Leaderboard Service Which Maintains Real-Time MMR Rankings In Redis
+        builder.Services.AddSingleton<GlobalLeaderboardService>();
+        builder.Services.AddHostedService(serviceProvider => serviceProvider.GetRequiredService<GlobalLeaderboardService>());
+
         // Add MVC Controllers Support
         builder.Services.AddControllers();
 

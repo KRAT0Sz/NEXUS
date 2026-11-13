@@ -1,4 +1,4 @@
-﻿namespace MERRICK.DatabaseContext.Entities.Statistics;
+namespace MERRICK.DatabaseContext.Entities.Statistics;
 
 [Index(nameof(AccountID), nameof(Type), IsUnique = true)]
 public class AccountStatistics
@@ -93,5 +93,7 @@ public enum AccountStatisticsType
     Matchmaking       = 2,
     MatchmakingCasual = 3,
     MidWars           = 4,
-    RiftWars          = 5
+    RiftWars          = 5,
+    Tournament        = 6
 }
+

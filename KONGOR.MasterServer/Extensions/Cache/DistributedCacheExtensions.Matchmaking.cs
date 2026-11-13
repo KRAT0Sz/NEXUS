@@ -90,6 +90,7 @@ public static partial class DistributedCacheExtensions
 
         // Remove Only The Manager's Own Cache Entry; Its Match Servers Are Independent Hosts With Their Own Chat Sessions, And Are Reaped On Their Own Liveness (Sessionless Past The Grace Period, Or A Stale Status Heartbeat)
         // A Manager Going Away Must Not Tear Down Its Still-Live Servers, Which Would Otherwise Interrupt In-Progress Matches Whenever The Manager Merely Reconnects After A Transient Disconnect
+        // The Same Holds For Its Copy-On-Write Master, A Non-Joinable Match Server Which The Manager Keeps Forking Its Match Servers From, And Which Is Reaped Once Its Heartbeat Is Stale
         await distributedCacheStore.HashDeleteAsync(MatchServerManagersKey, matchServerManager.HostAccountName);
     }
 
@@ -174,6 +175,9 @@ public static partial class DistributedCacheExtensions
 
     public static async Task RemoveMatchServerByID(this IDatabase distributedCacheStore, int serverID)
     {
+        // A Match Lock Must Never Outlive Its Match Server, So The Server's Locks Are Lifted Even When Its Cache Entry Is Already Gone
+        await distributedCacheStore.RemoveMatchLocksForServer(serverID);
+
         MatchServer? matchServer = await distributedCacheStore.GetMatchServerByID(serverID);
 
         if (matchServer is null)
@@ -192,6 +196,45 @@ public static partial class DistributedCacheExtensions
                 await distributedCacheStore.SetMatchServerManager(matchServerManager.HostAccountName, matchServerManager);
         }
     }
+
+    private const string CopyOnWriteMastersKey = "COPY-ON-WRITE-MASTERS";
+
+    /// <summary>
+    ///     Stores the copy-on-write master (HON's "cowmaster") which a Linux match server manager forks its match servers from.
+    ///     A match server manager runs a single copy-on-write master, so the copy-on-write master is keyed by the host account name and replaces any previous one.
+    ///     Copy-on-write masters are stored apart from the match servers, so that no server list, matchmaking, or match server look-up ever finds one.
+    /// </summary>
+    public static async Task SetCopyOnWriteMaster(this IDatabase distributedCacheStore, CopyOnWriteMaster copyOnWriteMaster)
+    {
+        string serializedCopyOnWriteMaster = JsonSerializer.Serialize(copyOnWriteMaster);
+
+        await distributedCacheStore.HashSetAsync(CopyOnWriteMastersKey, [new HashEntry(copyOnWriteMaster.HostAccountName, serializedCopyOnWriteMaster)]);
+    }
+
+    public static async Task<List<CopyOnWriteMaster>> GetCopyOnWriteMasters(this IDatabase distributedCacheStore)
+    {
+        HashEntry[] serializedCopyOnWriteMasters = await distributedCacheStore.HashGetAllAsync(CopyOnWriteMastersKey);
+
+        List<CopyOnWriteMaster> copyOnWriteMasters = [.. serializedCopyOnWriteMasters
+            .Select(entry => JsonSerializer.Deserialize<CopyOnWriteMaster>(entry.Value.ToString())).OfType<CopyOnWriteMaster>()];
+
+        return copyOnWriteMasters;
+    }
+
+    public static async Task<CopyOnWriteMaster?> GetCopyOnWriteMasterBySessionCookie(this IDatabase distributedCacheStore, string sessionCookie)
+    {
+        List<CopyOnWriteMaster> copyOnWriteMasters = await distributedCacheStore.GetCopyOnWriteMasters();
+
+        CopyOnWriteMaster? copyOnWriteMaster = copyOnWriteMasters.SingleOrDefault(master => master.Cookie.Equals(sessionCookie));
+
+        return copyOnWriteMaster;
+    }
+
+    /// <summary>
+    ///     Removes the copy-on-write master of the host account, which happens once its heartbeat is stale, because it has no chat session to show that it is still running.
+    /// </summary>
+    public static async Task RemoveCopyOnWriteMaster(this IDatabase distributedCacheStore, string hostAccountName)
+        => await distributedCacheStore.HashDeleteAsync(CopyOnWriteMastersKey, hostAccountName);
 
     private static string ConstructMatchInformationKey(int matchID) => $@"MATCH-INFORMATION:[""{matchID}""]";
 

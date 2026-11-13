@@ -1,4 +1,4 @@
-﻿namespace TRANSMUTANSTEIN.ChatServer.Domain.Matchmaking;
+namespace TRANSMUTANSTEIN.ChatServer.Domain.Matchmaking;
 
 public class MatchmakingGroupInformation
 {
@@ -48,7 +48,7 @@ public class MatchmakingGroupInformation
         _                                                      => throw new ArgumentOutOfRangeException(nameof(GameType), $@"Unsupported Game Type ""{GameType}""")
     };
 
-    public byte TeamSize => GameType switch
+    public byte TeamSize => (byte)(MapName.Contains("grimm", StringComparison.OrdinalIgnoreCase) ? 3 : GameType switch
     {
         ChatProtocol.TMMGameType.TMM_GAME_TYPE_NORMAL          => 5, // caldavar
         ChatProtocol.TMMGameType.TMM_GAME_TYPE_CASUAL          => 5, // caldavar_old
@@ -60,13 +60,13 @@ public class MatchmakingGroupInformation
         ChatProtocol.TMMGameType.TMM_GAME_TYPE_REBORN_CASUAL   => 5, // caldavar_reborn
         ChatProtocol.TMMGameType.TMM_GAME_TYPE_MIDWARS_REBORN  => 5, // midwars
         _                                                      => throw new ArgumentOutOfRangeException(nameof(GameType), $@"Unsupported Game Type: ""{GameType}""")
-    };
+    });
 
     /// <summary>
     ///     The account statistics type which holds each member's rating and match count for the selected game type.
     ///     Unranked normal matches accumulate on the casual rating, matching how the master server resolves the unranked arranged match type at statistics submission.
     /// </summary>
-    public AccountStatisticsType StatisticsType => GameType switch
+    public AccountStatisticsType StatisticsType => MapName.Contains("grimm", StringComparison.OrdinalIgnoreCase) ? AccountStatisticsType.Tournament : GameType switch
     {
         ChatProtocol.TMMGameType.TMM_GAME_TYPE_NORMAL          => Ranked ? AccountStatisticsType.Matchmaking : AccountStatisticsType.MatchmakingCasual,
         ChatProtocol.TMMGameType.TMM_GAME_TYPE_CASUAL          => AccountStatisticsType.MatchmakingCasual,

@@ -1,0 +1,702 @@
+﻿[
+  {
+    "ID": 3745,
+    "Name": "Accursed Mastery Coupon",
+    "Hero": "Hero_Accursed"
+  },
+  {
+    "ID": 3746,
+    "Name": "Aluna Mastery Coupon",
+    "Hero": "Hero_Aluna"
+  },
+  {
+    "ID": 3747,
+    "Name": "Andromeda Mastery Coupon",
+    "Hero": "Hero_Andromeda"
+  },
+  {
+    "ID": 3748,
+    "Name": "Arachna Mastery Coupon",
+    "Hero": "Hero_Arachna"
+  },
+  {
+    "ID": 3749,
+    "Name": "Armadon Mastery Coupon",
+    "Hero": "Hero_Armadon"
+  },
+  {
+    "ID": 3750,
+    "Name": "Artesia Mastery Coupon",
+    "Hero": "Hero_Artesia"
+  },
+  {
+    "ID": 3751,
+    "Name": "Artillery Mastery Coupon",
+    "Hero": "Hero_Artillery"
+  },
+  {
+    "ID": 3752,
+    "Name": "Wretched Hag Mastery Coupon",
+    "Hero": "Hero_BabaYaga"
+  },
+  {
+    "ID": 3753,
+    "Name": "Behemoth Mastery Coupon",
+    "Hero": "Hero_Behemoth"
+  },
+  {
+    "ID": 3754,
+    "Name": "Balphagore Mastery Coupon",
+    "Hero": "Hero_Bephelgor"
+  },
+  {
+    "ID": 3755,
+    "Name": "Berzerker Mastery Coupon",
+    "Hero": "Hero_Berzerker"
+  },
+  {
+    "ID": 3756,
+    "Name": "Blitz Mastery Coupon",
+    "Hero": "Hero_Blitz"
+  },
+  {
+    "ID": 3757,
+    "Name": "Bombardier Mastery Coupon",
+    "Hero": "Hero_Bombardier"
+  },
+  {
+    "ID": 3758,
+    "Name": "Bubbles Mastery Coupon",
+    "Hero": "Hero_Bubbles"
+  },
+  {
+    "ID": 3759,
+    "Name": "Bushwack Mastery Coupon",
+    "Hero": "Hero_Bushwack"
+  },
+  {
+    "ID": 3760,
+    "Name": "Calamity Mastery Coupon",
+    "Hero": "Hero_Calamity"
+  },
+  {
+    "ID": 3761,
+    "Name": "The Chipper Mastery Coupon",
+    "Hero": "Hero_Chipper"
+  },
+  {
+    "ID": 3762,
+    "Name": "Chronos Mastery Coupon",
+    "Hero": "Hero_Chronos"
+  },
+  {
+    "ID": 3763,
+    "Name": "Circe Mastery Coupon",
+    "Hero": "Hero_Circe"
+  },
+  {
+    "ID": 3764,
+    "Name": "Corrupted Disciple Mastery Coupon",
+    "Hero": "Hero_CorruptedDisciple"
+  },
+  {
+    "ID": 3765,
+    "Name": "Dampeer Mastery Coupon",
+    "Hero": "Hero_Dampeer"
+  },
+  {
+    "ID": 3766,
+    "Name": "Deadlift Mastery Coupon",
+    "Hero": "Hero_Deadlift"
+  },
+  {
+    "ID": 3767,
+    "Name": "Deadwood Mastery Coupon",
+    "Hero": "Hero_Deadwood"
+  },
+  {
+    "ID": 3768,
+    "Name": "Defiler Mastery Coupon",
+    "Hero": "Hero_Defiler"
+  },
+  {
+    "ID": 3769,
+    "Name": "Devourer Mastery Coupon",
+    "Hero": "Hero_Devourer"
+  },
+  {
+    "ID": 3770,
+    "Name": "Plague Rider Mastery Coupon",
+    "Hero": "Hero_DiseasedRider"
+  },
+  {
+    "ID": 3771,
+    "Name": "Doctor Repulsor Mastery Coupon",
+    "Hero": "Hero_DoctorRepulsor"
+  },
+  {
+    "ID": 3772,
+    "Name": "Lord Salforis Mastery Coupon",
+    "Hero": "Hero_Dreadknight"
+  },
+  {
+    "ID": 3773,
+    "Name": "Blacksmith Mastery Coupon",
+    "Hero": "Hero_DwarfMagi"
+  },
+  {
+    "ID": 3774,
+    "Name": "Slither Mastery Coupon",
+    "Hero": "Hero_Ebulus"
+  },
+  {
+    "ID": 3775,
+    "Name": "Electrician Mastery Coupon",
+    "Hero": "Hero_Electrician"
+  },
+  {
+    "ID": 3776,
+    "Name": "Ellonia Mastery Coupon",
+    "Hero": "Hero_Ellonia"
+  },
+  {
+    "ID": 3777,
+    "Name": "Empath Mastery Coupon",
+    "Hero": "Hero_Empath"
+  },
+  {
+    "ID": 3778,
+    "Name": "Engineer Mastery Coupon",
+    "Hero": "Hero_Engineer"
+  },
+  {
+    "ID": 3779,
+    "Name": "Fayde Mastery Coupon",
+    "Hero": "Hero_Fade"
+  },
+  {
+    "ID": 3780,
+    "Name": "Nymphora Mastery Coupon",
+    "Hero": "Hero_Fairy"
+  },
+  {
+    "ID": 3781,
+    "Name": "Draconis Mastery Coupon",
+    "Hero": "Hero_FlameDragon"
+  },
+  {
+    "ID": 3782,
+    "Name": "Flint Beastwood Mastery Coupon",
+    "Hero": "Hero_FlintBeastwood"
+  },
+  {
+    "ID": 3783,
+    "Name": "Forsaken Archer Mastery Coupon",
+    "Hero": "Hero_ForsakenArcher"
+  },
+  {
+    "ID": 3784,
+    "Name": "Glacius Mastery Coupon",
+    "Hero": "Hero_Frosty"
+  },
+  {
+    "ID": 3785,
+    "Name": "Gauntlet Mastery Coupon",
+    "Hero": "Hero_Gauntlet"
+  },
+  {
+    "ID": 3786,
+    "Name": "Gemini Mastery Coupon",
+    "Hero": "Hero_Gemini"
+  },
+  {
+    "ID": 3787,
+    "Name": "The Gladiator Mastery Coupon",
+    "Hero": "Hero_Gladiator"
+  },
+  {
+    "ID": 3788,
+    "Name": "Grinex Mastery Coupon",
+    "Hero": "Hero_Grinex"
+  },
+  {
+    "ID": 3789,
+    "Name": "Gunblade Mastery Coupon",
+    "Hero": "Hero_Gunblade"
+  },
+  {
+    "ID": 3790,
+    "Name": "Hammerstorm Mastery Coupon",
+    "Hero": "Hero_Hammerstorm"
+  },
+  {
+    "ID": 3791,
+    "Name": "Night Hound Mastery Coupon",
+    "Hero": "Hero_Hantumon"
+  },
+  {
+    "ID": 3792,
+    "Name": "Hellbringer Mastery Coupon",
+    "Hero": "Hero_Hellbringer"
+  },
+  {
+    "ID": 3793,
+    "Name": "Soul Reaper Mastery Coupon",
+    "Hero": "Hero_HellDemon"
+  },
+  {
+    "ID": 3794,
+    "Name": "Swiftblade Mastery Coupon",
+    "Hero": "Hero_Hiro"
+  },
+  {
+    "ID": 3795,
+    "Name": "Blood Hunter Mastery Coupon",
+    "Hero": "Hero_Hunter"
+  },
+  {
+    "ID": 3796,
+    "Name": "Myrmidon Mastery Coupon",
+    "Hero": "Hero_Hydromancer"
+  },
+  {
+    "ID": 3797,
+    "Name": "Magebane Mastery Coupon",
+    "Hero": "Hero_Javaras"
+  },
+  {
+    "ID": 3798,
+    "Name": "Jereziah Mastery Coupon",
+    "Hero": "Hero_Jereziah"
+  },
+  {
+    "ID": 3799,
+    "Name": "Kane Mastery Coupon",
+    "Hero": "Hero_Kane"
+  },
+  {
+    "ID": 3800,
+    "Name": "Kinesis Mastery Coupon",
+    "Hero": "Hero_Kenisis"
+  },
+  {
+    "ID": 3801,
+    "Name": "Klanx Mastery Coupon",
+    "Hero": "Hero_Klanx"
+  },
+  {
+    "ID": 3802,
+    "Name": "Kraken Mastery Coupon",
+    "Hero": "Hero_Kraken"
+  },
+  {
+    "ID": 3803,
+    "Name": "Moon Queen Mastery Coupon",
+    "Hero": "Hero_Krixi"
+  },
+  {
+    "ID": 3804,
+    "Name": "Thunderbringer Mastery Coupon",
+    "Hero": "Hero_Kunas"
+  },
+  {
+    "ID": 3805,
+    "Name": "Legionnaire Mastery Coupon",
+    "Hero": "Hero_Legionnaire"
+  },
+  {
+    "ID": 3806,
+    "Name": "Lodestone Mastery Coupon",
+    "Hero": "Hero_Lodestone"
+  },
+  {
+    "ID": 3807,
+    "Name": "Magmus Mastery Coupon",
+    "Hero": "Hero_Magmar"
+  },
+  {
+    "ID": 3808,
+    "Name": "Maliken Mastery Coupon",
+    "Hero": "Hero_Maliken"
+  },
+  {
+    "ID": 3809,
+    "Name": "Moira Mastery Coupon",
+    "Hero": "Hero_Moira"
+  },
+  {
+    "ID": 3810,
+    "Name": "Monkey King Mastery Coupon",
+    "Hero": "Hero_MonkeyKing"
+  },
+  {
+    "ID": 3811,
+    "Name": "Moraxus Mastery Coupon",
+    "Hero": "Hero_Moraxus"
+  },
+  {
+    "ID": 3812,
+    "Name": "Pharaoh Mastery Coupon",
+    "Hero": "Hero_Mumra"
+  },
+  {
+    "ID": 3813,
+    "Name": "Nitro Mastery Coupon",
+    "Hero": "Hero_Nitro"
+  },
+  {
+    "ID": 3814,
+    "Name": "Nomad Mastery Coupon",
+    "Hero": "Hero_Nomad"
+  },
+  {
+    "ID": 3815,
+    "Name": "Oogie Mastery Coupon",
+    "Hero": "Hero_Oogie"
+  },
+  {
+    "ID": 3816,
+    "Name": "Ophelia Mastery Coupon",
+    "Hero": "Hero_Ophelia"
+  },
+  {
+    "ID": 3817,
+    "Name": "Pandamonium Mastery Coupon",
+    "Hero": "Hero_Panda"
+  },
+  {
+    "ID": 3818,
+    "Name": "Parallax Mastery Coupon",
+    "Hero": "Hero_Parallax"
+  },
+  {
+    "ID": 3819,
+    "Name": "Pearl Mastery Coupon",
+    "Hero": "Hero_Pearl"
+  },
+  {
+    "ID": 3820,
+    "Name": "Pestilence Mastery Coupon",
+    "Hero": "Hero_Pestilence"
+  },
+  {
+    "ID": 3821,
+    "Name": "Bramble Mastery Coupon",
+    "Hero": "Hero_Plant"
+  },
+  {
+    "ID": 3822,
+    "Name": "Pollywog Priest Mastery Coupon",
+    "Hero": "Hero_PollywogPriest"
+  },
+  {
+    "ID": 3823,
+    "Name": "Predator Mastery Coupon",
+    "Hero": "Hero_Predator"
+  },
+  {
+    "ID": 3824,
+    "Name": "Prisoner 945 Mastery Coupon",
+    "Hero": "Hero_Prisoner"
+  },
+  {
+    "ID": 3825,
+    "Name": "Prophet Mastery Coupon",
+    "Hero": "Hero_Prophet"
+  },
+  {
+    "ID": 3826,
+    "Name": "Puppet Master Mastery Coupon",
+    "Hero": "Hero_PuppetMaster"
+  },
+  {
+    "ID": 3827,
+    "Name": "Pyromancer Mastery Coupon",
+    "Hero": "Hero_Pyromancer"
+  },
+  {
+    "ID": 3828,
+    "Name": "Rally Mastery Coupon",
+    "Hero": "Hero_Rally"
+  },
+  {
+    "ID": 3829,
+    "Name": "Rampage Mastery Coupon",
+    "Hero": "Hero_Rampage"
+  },
+  {
+    "ID": 3830,
+    "Name": "Ravenor Mastery Coupon",
+    "Hero": "Hero_Ravenor"
+  },
+  {
+    "ID": 3831,
+    "Name": "Riftwalker Mastery Coupon",
+    "Hero": "Hero_Riftmage"
+  },
+  {
+    "ID": 3832,
+    "Name": "Riptide Mastery Coupon",
+    "Hero": "Hero_Riptide"
+  },
+  {
+    "ID": 3833,
+    "Name": "Pebbles Mastery Coupon",
+    "Hero": "Hero_Rocky"
+  },
+  {
+    "ID": 3834,
+    "Name": "Salomon Mastery Coupon",
+    "Hero": "Hero_Salomon"
+  },
+  {
+    "ID": 3835,
+    "Name": "Sand Wraith Mastery Coupon",
+    "Hero": "Hero_SandWraith"
+  },
+  {
+    "ID": 3836,
+    "Name": "The Madman Mastery Coupon",
+    "Hero": "Hero_Scar"
+  },
+  {
+    "ID": 3837,
+    "Name": "Scout Mastery Coupon",
+    "Hero": "Hero_Scout"
+  },
+  {
+    "ID": 3838,
+    "Name": "Shadowblade Mastery Coupon",
+    "Hero": "Hero_ShadowBlade"
+  },
+  {
+    "ID": 3839,
+    "Name": "Demented Shaman Mastery Coupon",
+    "Hero": "Hero_Shaman"
+  },
+  {
+    "ID": 3840,
+    "Name": "Sir Benzington Mastery Coupon",
+    "Hero": "Hero_SirBenzington"
+  },
+  {
+    "ID": 3841,
+    "Name": "Skrap Mastery Coupon",
+    "Hero": "Hero_Skrap"
+  },
+  {
+    "ID": 3842,
+    "Name": "Solstice Mastery Coupon",
+    "Hero": "Hero_Solstice"
+  },
+  {
+    "ID": 3843,
+    "Name": "Soulstealer Mastery Coupon",
+    "Hero": "Hero_Soulstealer"
+  },
+  {
+    "ID": 3844,
+    "Name": "Succubus Mastery Coupon",
+    "Hero": "Hero_Succubis"
+  },
+  {
+    "ID": 3845,
+    "Name": "Gravekeeper Mastery Coupon",
+    "Hero": "Hero_Taint"
+  },
+  {
+    "ID": 3846,
+    "Name": "Tarot Mastery Coupon",
+    "Hero": "Hero_Tarot"
+  },
+  {
+    "ID": 3847,
+    "Name": "Tempest Mastery Coupon",
+    "Hero": "Hero_Tempest"
+  },
+  {
+    "ID": 3848,
+    "Name": "Keeper Of The Forest Mastery Coupon",
+    "Hero": "Hero_Treant"
+  },
+  {
+    "ID": 3849,
+    "Name": "Tremble Mastery Coupon",
+    "Hero": "Hero_Tremble"
+  },
+  {
+    "ID": 3850,
+    "Name": "Tundra Mastery Coupon",
+    "Hero": "Hero_Tundra"
+  },
+  {
+    "ID": 3851,
+    "Name": "Valkyrie Mastery Coupon",
+    "Hero": "Hero_Valkyrie"
+  },
+  {
+    "ID": 3852,
+    "Name": "The Dark Lady Mastery Coupon",
+    "Hero": "Hero_Vanya"
+  },
+  {
+    "ID": 3853,
+    "Name": "Vindicator Mastery Coupon",
+    "Hero": "Hero_Vindicator"
+  },
+  {
+    "ID": 3854,
+    "Name": "Voodoo Jester Mastery Coupon",
+    "Hero": "Hero_Voodoo"
+  },
+  {
+    "ID": 3855,
+    "Name": "Witch Slayer Mastery Coupon",
+    "Hero": "Hero_WitchSlayer"
+  },
+  {
+    "ID": 3856,
+    "Name": "War Beast Mastery Coupon",
+    "Hero": "Hero_WolfMan"
+  },
+  {
+    "ID": 3857,
+    "Name": "Torturer Mastery Coupon",
+    "Hero": "Hero_Xalynx"
+  },
+  {
+    "ID": 3858,
+    "Name": "Wild Soul Mastery Coupon",
+    "Hero": "Hero_Yogi"
+  },
+  {
+    "ID": 3859,
+    "Name": "Zephyr Mastery Coupon",
+    "Hero": "Hero_Zephyr"
+  },
+  {
+    "ID": 359600,
+    "Name": "All Avatar Mastery Coupon",
+    "Hero": ""
+  },
+  {
+    "ID": 359601,
+    "Name": "Adrenaline Mastery Coupon",
+    "Hero": "Hero_Adrenaline"
+  },
+  {
+    "ID": 359602,
+    "Name": "Apex Mastery Coupon",
+    "Hero": "Hero_Apex"
+  },
+  {
+    "ID": 359603,
+    "Name": "Qi Mastery Coupon",
+    "Hero": "Hero_Chi"
+  },
+  {
+    "ID": 359604,
+    "Name": "Cthulhuphant Mastery Coupon",
+    "Hero": "Hero_Cthulhuphant"
+  },
+  {
+    "ID": 359605,
+    "Name": "Drunken Master Mastery Coupon",
+    "Hero": "Hero_DrunkenMaster"
+  },
+  {
+    "ID": 359606,
+    "Name": "Emerald Warden Mastery Coupon",
+    "Hero": "Hero_EmeraldWarden"
+  },
+  {
+    "ID": 359607,
+    "Name": "Flux Mastery Coupon",
+    "Hero": "Hero_Flux"
+  },
+  {
+    "ID": 359608,
+    "Name": "Geomancer Mastery Coupon",
+    "Hero": "Hero_Geomancer"
+  },
+  {
+    "ID": 359609,
+    "Name": "Goldenveil Mastery Coupon",
+    "Hero": "Hero_Goldenveil"
+  },
+  {
+    "ID": 359610,
+    "Name": "Ichor Mastery Coupon",
+    "Hero": "Hero_Ichor"
+  },
+  {
+    "ID": 359611,
+    "Name": "King Klout Mastery Coupon",
+    "Hero": "Hero_KingKlout"
+  },
+  {
+    "ID": 359612,
+    "Name": "Martyr Mastery Coupon",
+    "Hero": "Hero_Martyr"
+  },
+  {
+    "ID": 359613,
+    "Name": "Master Of Arms Mastery Coupon",
+    "Hero": "Hero_MasterOfArms"
+  },
+  {
+    "ID": 359614,
+    "Name": "Midas Mastery Coupon",
+    "Hero": "Hero_Midas"
+  },
+  {
+    "ID": 359615,
+    "Name": "Xemplar Mastery Coupon",
+    "Hero": "Hero_Mimix"
+  },
+  {
+    "ID": 359616,
+    "Name": "Monarch Mastery Coupon",
+    "Hero": "Hero_Monarch"
+  },
+  {
+    "ID": 359617,
+    "Name": "Parasite Mastery Coupon",
+    "Hero": "Hero_Parasite"
+  },
+  {
+    "ID": 359618,
+    "Name": "Amun-Ra Mastery Coupon",
+    "Hero": "Hero_Ra"
+  },
+  {
+    "ID": 359619,
+    "Name": "Revenant Mastery Coupon",
+    "Hero": "Hero_Revenant"
+  },
+  {
+    "ID": 359620,
+    "Name": "Rhapsody Mastery Coupon",
+    "Hero": "Hero_Rhapsody"
+  },
+  {
+    "ID": 359621,
+    "Name": "Sapphire Mastery Coupon",
+    "Hero": "Hero_Sapphire"
+  },
+  {
+    "ID": 359622,
+    "Name": "Shellshock Mastery Coupon",
+    "Hero": "Hero_Shellshock"
+  },
+  {
+    "ID": 359623,
+    "Name": "Silhouette Mastery Coupon",
+    "Hero": "Hero_Silhouette"
+  },
+  {
+    "ID": 359624,
+    "Name": "Warchief Mastery Coupon",
+    "Hero": "Hero_Warchief"
+  }
+]

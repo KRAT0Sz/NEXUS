@@ -5,7 +5,7 @@ namespace TRANSMUTANSTEIN.ChatServer.CommandProcessors.Communication;
 ///     Broadcasts a message to all online clan members, respecting DND/AFK chat modes.
 /// </summary>
 [ChatCommand(ChatProtocol.Command.CHAT_CMD_CLAN_WHISPER)]
-public class ClanWhisper(FloodPreventionService floodPreventionService) : ISynchronousCommandProcessor<ClientChatSession>
+public class ClanWhisper(FloodPreventionService floodPreventionService, KongorProtectService kongorProtectService) : ISynchronousCommandProcessor<ClientChatSession>
 {
     public void Process(ClientChatSession session, ChatBuffer buffer)
     {
@@ -29,16 +29,37 @@ public class ClanWhisper(FloodPreventionService floodPreventionService) : ISynch
             return;
         }
 
-        string truncatedMessage = requestData.Message.Length > ChatProtocol.CHAT_MESSAGE_MAX_LENGTH
+        string message = requestData.Message.Length > ChatProtocol.CHAT_MESSAGE_MAX_LENGTH
             ? requestData.Message[..ChatProtocol.CHAT_MESSAGE_MAX_LENGTH]
             : requestData.Message;
+
+        // KONGOR PROTECT: Moderate clan messages for non-staff players
+        if (session.Account.Type is not AccountType.Staff)
+        {
+            KongorProtectResult protectResult = kongorProtectService.Inspect(message, session.Account.ID);
+
+            if (protectResult.IsBlocked)
+            {
+                ChatBuffer warningBuffer = new ();
+                warningBuffer.WriteCommand(ChatProtocol.Command.CHAT_CMD_WHISPER);
+                warningBuffer.WriteString("KONGOR PROTECT");
+                warningBuffer.WriteString("Your clan message was blocked due to prohibited language.");
+                session.Send(warningBuffer);
+
+                Log.Warning(@"[KONGOR PROTECT] Blocked clan message from Account ID {AccountID}", session.Account.ID);
+
+                return;
+            }
+
+            message = protectResult.SanitisedMessage;
+        }
 
         // Sends AccountID (Not Name) Then Message
         ChatBuffer clanWhisper = new ();
 
         clanWhisper.WriteCommand(ChatProtocol.Command.CHAT_CMD_CLAN_WHISPER);
         clanWhisper.WriteInt32(session.Account.ID); // Sender's Account ID
-        clanWhisper.WriteString(truncatedMessage);  // Message Content
+        clanWhisper.WriteString(message);           // Message Content
 
         foreach (Account clanMember in session.Account.Clan.Members)
         {

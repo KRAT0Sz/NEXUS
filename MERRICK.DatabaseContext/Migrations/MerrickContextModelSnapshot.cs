@@ -18,10 +18,139 @@ namespace MERRICK.DatabaseContext.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasDefaultSchema("data")
-                .HasAnnotation("ProductVersion", "10.0.12")
+                .HasAnnotation("ProductVersion", "10.0.13")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+
+            modelBuilder.Entity("MERRICK.DatabaseContext.Entities.Administration.IncidentReport", b =>
+                {
+                    b.Property<int>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ID"));
+
+                    b.Property<int?>("AccusedID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("IncidentType")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MatchID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("OffenseOccurrenceTime")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ReporterID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ResolutionDetails")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("ReviewerID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("TimestampCreated")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("ID");
+
+                    b.HasIndex("AccusedID");
+
+                    b.HasIndex("ReporterID");
+
+                    b.HasIndex("ReviewerID");
+
+                    b.ToTable("IncidentReports", "admin");
+                });
+
+            modelBuilder.Entity("MERRICK.DatabaseContext.Entities.Administration.StaffMemberAction", b =>
+                {
+                    b.Property<int>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ID"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Details")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("SourceID")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("TargetID")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset>("Timestamp")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("ID");
+
+                    b.ToTable("StaffMemberActions", "admin");
+                });
+
+            modelBuilder.Entity("MERRICK.DatabaseContext.Entities.Administration.Suspension", b =>
+                {
+                    b.Property<int>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ID"));
+
+                    b.Property<string>("InternalDetails")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("IssuerAccountID")
+                        .HasColumnType("int");
+
+                    b.Property<float>("Multiplier")
+                        .HasColumnType("real");
+
+                    b.Property<int>("OffenderAccountID")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("Override")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("SuspendByMask")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("TimestampBaseEnd")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("TimestampEnd")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("TimestampStart")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("ID");
+
+                    b.HasIndex("IssuerAccountID");
+
+                    b.HasIndex("OffenderAccountID");
+
+                    b.ToTable("Suspensions", "admin");
+                });
 
             modelBuilder.Entity("MERRICK.DatabaseContext.Entities.Core.Account", b =>
                 {
@@ -198,6 +327,34 @@ namespace MERRICK.DatabaseContext.Migrations
                     b.ToTable("Messages", "core");
                 });
 
+            modelBuilder.Entity("MERRICK.DatabaseContext.Entities.Core.NicknameChange", b =>
+                {
+                    b.Property<int>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ID"));
+
+                    b.Property<int>("AccountID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CurrentUserName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("NicknameChangeDates")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PastUserNames")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("ID");
+
+                    b.ToTable("NicknameChanges", "core");
+                });
+
             modelBuilder.Entity("MERRICK.DatabaseContext.Entities.Core.User", b =>
                 {
                     b.Property<int>("ID")
@@ -262,6 +419,112 @@ namespace MERRICK.DatabaseContext.Migrations
                     b.HasIndex("RoleID");
 
                     b.ToTable("Users", "core");
+                });
+
+            modelBuilder.Entity("MERRICK.DatabaseContext.Entities.Economy.Coupon", b =>
+                {
+                    b.Property<int>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ID"));
+
+                    b.PrimitiveCollection<string>("ApplicableProducts")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<double>("DiscountPercentage")
+                        .HasColumnType("float");
+
+                    b.Property<string>("Hero")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("ID");
+
+                    b.ToTable("Coupons", "economy");
+                });
+
+            modelBuilder.Entity("MERRICK.DatabaseContext.Entities.Economy.DailySpecial", b =>
+                {
+                    b.Property<int>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ID"));
+
+                    b.Property<int>("DiscountOff")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DiscountSilver")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("PanelIndex")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TagDateLimit")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TagTitle")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("ID");
+
+                    b.ToTable("DailySpecials", "economy");
+                });
+
+            modelBuilder.Entity("MERRICK.DatabaseContext.Entities.Economy.GenesisReward", b =>
+                {
+                    b.Property<string>("Code")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("ClaimedRewardsMask")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ClaimedUserID")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Code");
+
+                    b.ToTable("GenesisRewards", "economy");
+                });
+
+            modelBuilder.Entity("MERRICK.DatabaseContext.Entities.Economy.StatsReset", b =>
+                {
+                    b.Property<int>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ID"));
+
+                    b.Property<int>("AccountID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ResetType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("StatisticsSnapshotJSON")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset>("TimestampReset")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("ID");
+
+                    b.ToTable("StatsResets", "economy");
                 });
 
             modelBuilder.Entity("MERRICK.DatabaseContext.Entities.Game.HeroGuide", b =>
@@ -913,6 +1176,132 @@ namespace MERRICK.DatabaseContext.Migrations
                     b.ToTable("MatchStatistics", "stat");
                 });
 
+            modelBuilder.Entity("MERRICK.DatabaseContext.Entities.Telemetry.GeoInformation", b =>
+                {
+                    b.Property<string>("IPAddress")
+                        .HasMaxLength(45)
+                        .HasColumnType("nvarchar(45)");
+
+                    b.Property<int?>("CityID")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ContinentID")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("CountryID")
+                        .HasColumnType("int");
+
+                    b.Property<float>("Latitude")
+                        .HasColumnType("real");
+
+                    b.Property<float>("Longitude")
+                        .HasColumnType("real");
+
+                    b.Property<string>("PostalCode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TimeZone")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("IPAddress");
+
+                    b.HasIndex("CityID");
+
+                    b.HasIndex("ContinentID");
+
+                    b.HasIndex("CountryID");
+
+                    b.ToTable("GeoInformations", "telemetry");
+                });
+
+            modelBuilder.Entity("MERRICK.DatabaseContext.Entities.Telemetry.GeoName", b =>
+                {
+                    b.Property<int>("ID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Code")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("GeoInformationIPAddress")
+                        .HasColumnType("nvarchar(45)");
+
+                    b.Property<string>("ISOCode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool?>("IsInEuropeanUnion")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Names")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("ID");
+
+                    b.HasIndex("GeoInformationIPAddress");
+
+                    b.ToTable("GeoNames", "telemetry");
+                });
+
+            modelBuilder.Entity("MERRICK.DatabaseContext.Entities.Telemetry.HardwareSnapshot", b =>
+                {
+                    b.Property<byte[]>("Hash")
+                        .HasMaxLength(64)
+                        .HasColumnType("varbinary(64)");
+
+                    b.Property<string>("HardwareID")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("IPAddress")
+                        .HasMaxLength(45)
+                        .HasColumnType("nvarchar(45)");
+
+                    b.Property<byte[]>("SnapshotJSONCompressed")
+                        .IsRequired()
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<DateTimeOffset>("TimestampFirstObserved")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("UserID")
+                        .HasMaxLength(36)
+                        .HasColumnType("nvarchar(36)");
+
+                    b.HasKey("Hash");
+
+                    b.HasIndex("UserID");
+
+                    b.ToTable("HardwareSnapshots", "telemetry");
+                });
+
+            modelBuilder.Entity("MERRICK.DatabaseContext.Entities.Telemetry.UniqueHardware", b =>
+                {
+                    b.Property<byte[]>("FirstSnapshotHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("varbinary(64)");
+
+                    b.Property<string>("SerialisedData")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset>("Timestamp")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("UserID")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("nvarchar(36)");
+
+                    b.HasKey("FirstSnapshotHash");
+
+                    b.ToTable("UniqueHardwares", "telemetry");
+                });
+
             modelBuilder.Entity("MERRICK.DatabaseContext.Entities.Utility.ConfigurationBackup", b =>
                 {
                     b.Property<int>("ID")
@@ -1060,6 +1449,44 @@ namespace MERRICK.DatabaseContext.Migrations
                     b.HasKey("ID");
 
                     b.ToTable("Tokens", "auth");
+                });
+
+            modelBuilder.Entity("MERRICK.DatabaseContext.Entities.Administration.IncidentReport", b =>
+                {
+                    b.HasOne("MERRICK.DatabaseContext.Entities.Core.Account", "Accused")
+                        .WithMany()
+                        .HasForeignKey("AccusedID");
+
+                    b.HasOne("MERRICK.DatabaseContext.Entities.Core.Account", "Reporter")
+                        .WithMany()
+                        .HasForeignKey("ReporterID");
+
+                    b.HasOne("MERRICK.DatabaseContext.Entities.Core.Account", "Reviewer")
+                        .WithMany()
+                        .HasForeignKey("ReviewerID");
+
+                    b.Navigation("Accused");
+
+                    b.Navigation("Reporter");
+
+                    b.Navigation("Reviewer");
+                });
+
+            modelBuilder.Entity("MERRICK.DatabaseContext.Entities.Administration.Suspension", b =>
+                {
+                    b.HasOne("MERRICK.DatabaseContext.Entities.Core.Account", "IssuerAccount")
+                        .WithMany()
+                        .HasForeignKey("IssuerAccountID");
+
+                    b.HasOne("MERRICK.DatabaseContext.Entities.Core.Account", "OffenderAccount")
+                        .WithMany()
+                        .HasForeignKey("OffenderAccountID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("IssuerAccount");
+
+                    b.Navigation("OffenderAccount");
                 });
 
             modelBuilder.Entity("MERRICK.DatabaseContext.Entities.Core.Account", b =>
@@ -1592,6 +2019,34 @@ namespace MERRICK.DatabaseContext.Migrations
                     b.Navigation("FragHistory");
                 });
 
+            modelBuilder.Entity("MERRICK.DatabaseContext.Entities.Telemetry.GeoInformation", b =>
+                {
+                    b.HasOne("MERRICK.DatabaseContext.Entities.Telemetry.GeoName", "City")
+                        .WithMany()
+                        .HasForeignKey("CityID");
+
+                    b.HasOne("MERRICK.DatabaseContext.Entities.Telemetry.GeoName", "Continent")
+                        .WithMany()
+                        .HasForeignKey("ContinentID");
+
+                    b.HasOne("MERRICK.DatabaseContext.Entities.Telemetry.GeoName", "Country")
+                        .WithMany()
+                        .HasForeignKey("CountryID");
+
+                    b.Navigation("City");
+
+                    b.Navigation("Continent");
+
+                    b.Navigation("Country");
+                });
+
+            modelBuilder.Entity("MERRICK.DatabaseContext.Entities.Telemetry.GeoName", b =>
+                {
+                    b.HasOne("MERRICK.DatabaseContext.Entities.Telemetry.GeoInformation", null)
+                        .WithMany("Subdivisions")
+                        .HasForeignKey("GeoInformationIPAddress");
+                });
+
             modelBuilder.Entity("MERRICK.DatabaseContext.Entities.Utility.ConfigurationBackup", b =>
                 {
                     b.HasOne("MERRICK.DatabaseContext.Entities.Core.Account", "Account")
@@ -1625,6 +2080,11 @@ namespace MERRICK.DatabaseContext.Migrations
             modelBuilder.Entity("MERRICK.DatabaseContext.Entities.Core.User", b =>
                 {
                     b.Navigation("Accounts");
+                });
+
+            modelBuilder.Entity("MERRICK.DatabaseContext.Entities.Telemetry.GeoInformation", b =>
+                {
+                    b.Navigation("Subdivisions");
                 });
 #pragma warning restore 612, 618
         }

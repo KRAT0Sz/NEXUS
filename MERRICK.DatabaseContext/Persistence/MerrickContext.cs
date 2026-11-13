@@ -1,4 +1,4 @@
-﻿namespace MERRICK.DatabaseContext.Persistence;
+namespace MERRICK.DatabaseContext.Persistence;
 
 public sealed class MerrickContext : DbContext
 {
@@ -14,20 +14,35 @@ public sealed class MerrickContext : DbContext
     public const string AuthenticationSchema = "auth";
     public const string StatisticsSchema = "stat";
     public const string MiscellaneousSchema = "misc";
+    public const string AdministrationSchema = "admin";
+    public const string TelemetrySchema = "telemetry";
+    public const string EconomySchema = "economy";
 
     public DbSet<Account> Accounts => Set<Account>();
     public DbSet<AccountStatistics> AccountStatistics => Set<AccountStatistics>();
     public DbSet<Clan> Clans => Set<Clan>();
     public DbSet<ConfigurationBackup> ConfigurationBackups => Set<ConfigurationBackup>();
+    public DbSet<Coupon> Coupons => Set<Coupon>();
+    public DbSet<DailySpecial> DailySpecials => Set<DailySpecial>();
+    public DbSet<GenesisReward> GenesisRewards => Set<GenesisReward>();
+    public DbSet<GeoInformation> GeoInformations => Set<GeoInformation>();
+    public DbSet<GeoName> GeoNames => Set<GeoName>();
+    public DbSet<HardwareSnapshot> HardwareSnapshots => Set<HardwareSnapshot>();
     public DbSet<HeroGuide> HeroGuides => Set<HeroGuide>();
+    public DbSet<IncidentReport> IncidentReports => Set<IncidentReport>();
     public DbSet<Mastery> Masteries => Set<Mastery>();
     public DbSet<MasteryRewards> MasteryRewards => Set<MasteryRewards>();
     public DbSet<MatchStatistics> MatchStatistics => Set<MatchStatistics>();
     public DbSet<MatchParticipantStatistics> MatchParticipantStatistics => Set<MatchParticipantStatistics>();
     public DbSet<Message> Messages => Set<Message>();
+    public DbSet<NicknameChange> NicknameChanges => Set<NicknameChange>();
     public DbSet<RedeemableCode> RedeemableCodes => Set<RedeemableCode>();
     public DbSet<Role> Roles => Set<Role>();
+    public DbSet<StaffMemberAction> StaffMemberActions => Set<StaffMemberAction>();
+    public DbSet<StatsReset> StatsResets => Set<StatsReset>();
+    public DbSet<Suspension> Suspensions => Set<Suspension>();
     public DbSet<Token> Tokens => Set<Token>();
+    public DbSet<UniqueHardware> UniqueHardwares => Set<UniqueHardware>();
     public DbSet<User> Users => Set<User>();
 
     protected override void OnModelCreating(ModelBuilder builder)
@@ -46,6 +61,7 @@ public sealed class MerrickContext : DbContext
         ConfigureMatchStatistics(builder.Entity<MatchStatistics>());
         ConfigureMatchParticipantStatistics(builder.Entity<MatchParticipantStatistics>());
         ConfigureTokens(builder.Entity<Token>());
+        ConfigureGeoNames(builder.Entity<GeoName>());
     }
 
     private static void ConfigureSchemas(ModelBuilder builder)
@@ -56,15 +72,27 @@ public sealed class MerrickContext : DbContext
         builder.Entity<AccountStatistics>().ToTable("AccountStatistics", StatisticsSchema);
         builder.Entity<Clan>().ToTable("Clans", CoreSchema);
         builder.Entity<ConfigurationBackup>().ToTable("ConfigurationBackups", MiscellaneousSchema);
+        builder.Entity<Coupon>().ToTable("Coupons", EconomySchema);
+        builder.Entity<DailySpecial>().ToTable("DailySpecials", EconomySchema);
+        builder.Entity<GenesisReward>().ToTable("GenesisRewards", EconomySchema);
+        builder.Entity<GeoInformation>().ToTable("GeoInformations", TelemetrySchema);
+        builder.Entity<GeoName>().ToTable("GeoNames", TelemetrySchema);
+        builder.Entity<HardwareSnapshot>().ToTable("HardwareSnapshots", TelemetrySchema);
         builder.Entity<HeroGuide>().ToTable("HeroGuides", MiscellaneousSchema);
+        builder.Entity<IncidentReport>().ToTable("IncidentReports", AdministrationSchema);
         builder.Entity<Mastery>().ToTable("Masteries", StatisticsSchema);
         builder.Entity<MasteryRewards>().ToTable("MasteryRewards", StatisticsSchema);
         builder.Entity<MatchParticipantStatistics>().ToTable("MatchParticipantStatistics", StatisticsSchema);
         builder.Entity<MatchStatistics>().ToTable("MatchStatistics", StatisticsSchema);
         builder.Entity<Message>().ToTable("Messages", CoreSchema);
+        builder.Entity<NicknameChange>().ToTable("NicknameChanges", CoreSchema);
         builder.Entity<RedeemableCode>().ToTable("RedeemableCodes", MiscellaneousSchema);
         builder.Entity<Role>().ToTable("Roles", AuthenticationSchema);
+        builder.Entity<StaffMemberAction>().ToTable("StaffMemberActions", AdministrationSchema);
+        builder.Entity<StatsReset>().ToTable("StatsResets", EconomySchema);
+        builder.Entity<Suspension>().ToTable("Suspensions", AdministrationSchema);
         builder.Entity<Token>().ToTable("Tokens", AuthenticationSchema);
+        builder.Entity<UniqueHardware>().ToTable("UniqueHardwares", TelemetrySchema);
         builder.Entity<User>().ToTable("Users", CoreSchema);
     }
 
@@ -105,6 +133,23 @@ public sealed class MerrickContext : DbContext
         collection => collection.Aggregate(0, (accumulatedHashCode, value) => HashCode.Combine(accumulatedHashCode, value.GetHashCode())),
         collection => collection.ToList()
     );
+
+    private static ValueComparer<Dictionary<string, string>> DictionaryStringStringValueComparer => new
+    (
+        (first, second) => (first ?? new Dictionary<string, string>()).SequenceEqual(second ?? new Dictionary<string, string>()),
+        dictionary => dictionary.Aggregate(0, (accumulatedHashCode, pair) => HashCode.Combine(accumulatedHashCode, pair.Key.GetHashCode(), pair.Value.GetHashCode())),
+        dictionary => dictionary.ToDictionary(pair => pair.Key, pair => pair.Value)
+    );
+
+    private static void ConfigureGeoNames(EntityTypeBuilder<GeoName> builder)
+    {
+        builder.Property(geoName => geoName.Names).HasConversion
+        (
+            value => JsonSerializer.Serialize(value, new JsonSerializerOptions()),
+            value => JsonSerializer.Deserialize<Dictionary<string, string>>(value, new JsonSerializerOptions()) ?? new Dictionary<string, string>(),
+            DictionaryStringStringValueComparer
+        );
+    }
 
     private static void ConfigureMastery(EntityTypeBuilder<Mastery> builder)
     {

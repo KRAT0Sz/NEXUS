@@ -1,4 +1,4 @@
-﻿global using ASPIRE.Common.Constants;
+global using ASPIRE.Common.Constants;
 global using ASPIRE.Common.Extensions.Logging;
 global using ASPIRE.Common.Extensions.Services;
 
@@ -12,7 +12,11 @@ global using FluentValidation.Results;
 global using MailKit.Net.Smtp;
 
 global using MERRICK.DatabaseContext.Constants;
+global using MERRICK.DatabaseContext.Entities.Administration;
 global using MERRICK.DatabaseContext.Entities.Core;
+global using MERRICK.DatabaseContext.Entities.Economy;
+global using MERRICK.DatabaseContext.Entities.Statistics;
+global using MERRICK.DatabaseContext.Entities.Telemetry;
 global using MERRICK.DatabaseContext.Entities.Utility;
 global using MERRICK.DatabaseContext.Enumerations;
 global using MERRICK.DatabaseContext.Extensions;

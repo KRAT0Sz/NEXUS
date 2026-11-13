@@ -94,6 +94,11 @@ public partial class ClientRequesterController
         if (account is null)
             return NotFound($@"Account With Name ""{accountName}"" Was Not Found");
 
+        StreamerModeConfiguration? streamerConfiguration = await DistributedCache.GetStreamerMode(account.Name);
+
+        if (streamerConfiguration is not null && streamerConfiguration.Enabled && streamerConfiguration.HideStats)
+            return NotFound($@"Account With Name ""{accountName}"" Has Private Statistics");
+
         // Match IDs Are Not Chronological, So The Most Recent Matches Are Resolved By The Recorded Timestamp Rather Than By The Largest Match ID
         List<int> matchIDs = await MerrickContext.MatchParticipantStatistics
             .Where(participant => participant.AccountID == account.ID)
@@ -129,6 +134,11 @@ public partial class ClientRequesterController
 
         if (account is null)
             return NotFound($@"Account With Name ""{accountName}"" Was Not Found");
+
+        StreamerModeConfiguration? streamerConfiguration = await DistributedCache.GetStreamerMode(account.Name);
+
+        if (streamerConfiguration is not null && streamerConfiguration.Enabled && streamerConfiguration.HideStats)
+            return NotFound($@"Account With Name ""{accountName}"" Has Private Statistics");
 
         string? table = Request.Form["table"];
 
@@ -275,6 +285,23 @@ public partial class ClientRequesterController
             OwnedStoreItemsData = SetOwnedStoreItemsData(account)
         };
 
+        StreamerModeConfiguration? streamerConfiguration = await DistributedCache.GetStreamerMode(account.Name);
+
+        if (streamerConfiguration is not null && streamerConfiguration.Enabled && streamerConfiguration.HideMMR)
+        {
+            response.NameWithClanTag = streamerConfiguration.MaskedName;
+            response.SimpleSeasonStats.CurrentMedal = (int)Rank.NO_MEDAL;
+            response.SimpleSeasonStats.RankedMatchesWon = 0;
+            response.SimpleSeasonStats.RankedMatchesLost = 0;
+            response.SimpleCasualSeasonStats.CurrentMedal = (int)Rank.NO_MEDAL;
+            response.SimpleCasualSeasonStats.RankedMatchesWon = 0;
+            response.SimpleCasualSeasonStats.RankedMatchesLost = 0;
+            response.TotalMatchesPlayed = 0;
+            response.Level = 1;
+            response.MVPAwardsCount = 0;
+            response.Top4AwardCounts = [];
+        }
+
         return Ok(PhpSerialization.Serialize(response));
     }
 
@@ -292,6 +319,11 @@ public partial class ClientRequesterController
 
         if (account is null)
             return NotFound($@"Account With Name ""{accountName}"" Was Not Found");
+
+        StreamerModeConfiguration? streamerConfiguration = await DistributedCache.GetStreamerMode(account.Name);
+
+        if (streamerConfiguration is not null && streamerConfiguration.Enabled && streamerConfiguration.HideStats)
+            return NotFound($@"Account With Name ""{accountName}"" Has Private Statistics");
 
         string? table = Request.Form["table"];
 
@@ -336,7 +368,9 @@ public partial class ClientRequesterController
         {
             AccountStatistics statistics = statisticsByType[AccountStatisticsType.Matchmaking];
 
-            CampaignStatisticsResponse response = new (account, statistics, aggregates);
+            int? rank = await GlobalLeaderboardService.GetRank(account.ID, AccountStatisticsType.Matchmaking);
+
+            CampaignStatisticsResponse response = new (account, statistics, aggregates, rank, rank);
 
             return Ok(PhpSerialization.Serialize(response));
         }
@@ -345,7 +379,9 @@ public partial class ClientRequesterController
         {
             AccountStatistics statistics = statisticsByType[AccountStatisticsType.MatchmakingCasual];
 
-            CampaignCasualStatisticsResponse response = new (account, statistics, aggregates);
+            int? rank = await GlobalLeaderboardService.GetRank(account.ID, AccountStatisticsType.MatchmakingCasual);
+
+            CampaignCasualStatisticsResponse response = new (account, statistics, aggregates, rank, rank);
 
             return Ok(PhpSerialization.Serialize(response));
         }
@@ -394,7 +430,9 @@ public partial class ClientRequesterController
             {
                 AccountStatistics statistics = statisticsByType[AccountStatisticsType.MatchmakingCasual];
 
-                CampaignCasualStatisticsResponse response = new (account, statistics, aggregates);
+                int? rank = await GlobalLeaderboardService.GetRank(account.ID, AccountStatisticsType.MatchmakingCasual);
+
+                CampaignCasualStatisticsResponse response = new (account, statistics, aggregates, rank, rank);
 
                 return Ok(PhpSerialization.Serialize(response));
             }
@@ -403,7 +441,9 @@ public partial class ClientRequesterController
             {
                 AccountStatistics statistics = statisticsByType[AccountStatisticsType.Matchmaking];
 
-                CampaignStatisticsResponse response = new (account, statistics, aggregates);
+                int? rank = await GlobalLeaderboardService.GetRank(account.ID, AccountStatisticsType.Matchmaking);
+
+                CampaignStatisticsResponse response = new (account, statistics, aggregates, rank, rank);
 
                 return Ok(PhpSerialization.Serialize(response));
             }
@@ -430,6 +470,11 @@ public partial class ClientRequesterController
 
         if (account is null)
             return NotFound($@"Account With Name ""{accountName}"" Was Not Found");
+
+        StreamerModeConfiguration? streamerConfiguration = await DistributedCache.GetStreamerMode(account.Name);
+
+        if (streamerConfiguration is not null && streamerConfiguration.Enabled && streamerConfiguration.HideStats)
+            return NotFound($@"Account With Name ""{accountName}"" Has Private Statistics");
 
         Dictionary<AccountStatisticsType, AccountStatistics> statisticsByType = await MerrickContext.AccountStatistics
             .Where(statistics => statistics.AccountID == account.ID)
@@ -564,6 +609,11 @@ public partial class ClientRequesterController
         if (account is null)
             return NotFound($@"Account With Name ""{accountName}"" Was Not Found");
 
+        StreamerModeConfiguration? streamerConfiguration = await DistributedCache.GetStreamerMode(account.Name);
+
+        if (streamerConfiguration is not null && streamerConfiguration.Enabled && streamerConfiguration.HideStats)
+            return NotFound($@"Account With Name ""{accountName}"" Has Private Statistics");
+
         Dictionary<AccountStatisticsType, AccountStatistics> statisticsByType = await MerrickContext.AccountStatistics
             .Where(statistics => statistics.AccountID == account.ID)
             .ToDictionaryAsync(statistics => statistics.Type);
@@ -616,6 +666,11 @@ public partial class ClientRequesterController
 
         if (account is null)
             return NotFound($@"Account With Name ""{accountName}"" Was Not Found");
+
+        StreamerModeConfiguration? streamerConfiguration = await DistributedCache.GetStreamerMode(account.Name);
+
+        if (streamerConfiguration is not null && streamerConfiguration.Enabled && streamerConfiguration.HideStats)
+            return NotFound($@"Account With Name ""{accountName}"" Has Private Statistics");
 
         AccountStatisticsType statisticsType = isCasual ? AccountStatisticsType.MatchmakingCasual : AccountStatisticsType.Matchmaking;
 
@@ -886,6 +941,11 @@ public partial class ClientRequesterController
         if (account is null)
             return NotFound($@"Account With Name ""{accountName}"" Was Not Found");
 
+        StreamerModeConfiguration? streamerConfiguration = await DistributedCache.GetStreamerMode(account.Name);
+
+        if (streamerConfiguration is not null && streamerConfiguration.Enabled && streamerConfiguration.HideStats)
+            return NotFound($@"Account With Name ""{accountName}"" Has Private Statistics");
+
         Dictionary<AccountStatisticsType, AccountStatistics> statisticsByType = await MerrickContext.AccountStatistics
             .Where(statistics => statistics.AccountID == account.ID)
             .ToDictionaryAsync(statistics => statistics.Type);
@@ -926,6 +986,11 @@ public partial class ClientRequesterController
 
         if (account is null)
             return NotFound($@"Account With Name ""{accountName}"" Was Not Found");
+
+        StreamerModeConfiguration? streamerConfiguration = await DistributedCache.GetStreamerMode(account.Name);
+
+        if (streamerConfiguration is not null && streamerConfiguration.Enabled && streamerConfiguration.HideStats)
+            return NotFound($@"Account With Name ""{accountName}"" Has Private Statistics");
 
         Dictionary<AccountStatisticsType, AccountStatistics> statisticsByType = await MerrickContext.AccountStatistics
             .Where(statistics => statistics.AccountID == account.ID)

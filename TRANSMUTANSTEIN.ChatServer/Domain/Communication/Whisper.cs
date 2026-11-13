@@ -1,4 +1,4 @@
-﻿namespace TRANSMUTANSTEIN.ChatServer.Domain.Communication;
+namespace TRANSMUTANSTEIN.ChatServer.Domain.Communication;
 
 public class Whisper
 {
@@ -23,6 +23,20 @@ public class Whisper
             SendWhisperFailure(senderSession, recipientName);
 
             return this;
+        }
+
+        // Streamer Mode: Restrict Whispers To Friends And Staff If Enabled
+        if (recipientSession.IsStreamerModeActive && recipientSession.StreamerConfiguration?.FriendsOnlyWhisper is true)
+        {
+            bool isPrivilegedSender = senderSession.Account.Type is AccountType.Staff || recipientSession.IsFriendOrClanMember(senderSession.Account.ID);
+
+            if (isPrivilegedSender.Equals(false))
+            {
+                SendWhisperFailure(senderSession, recipientName)
+                    .SendAutomaticResponse(senderSession, recipientSession, "User is in Streamer Mode and accepts whispers from friends only");
+
+                return this;
+            }
         }
 
         // Check Recipient's Chat Mode

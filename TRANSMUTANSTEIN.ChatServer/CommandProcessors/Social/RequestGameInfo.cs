@@ -20,6 +20,10 @@ public class RequestGameInfo : ISynchronousCommandProcessor<ClientChatSession>
         ClientChatSession? targetSession = Context.ClientChatSessions.Values
             .SingleOrDefault(clientSession => clientSession.Account.Name.Equals(requestData.TargetName, StringComparison.OrdinalIgnoreCase));
 
+        // Suppress Game Information If Target Has Streamer Mode Active
+        if (targetSession is not null && targetSession.IsStreamerModeActive && targetSession.StreamerConfiguration?.BlockGameInfo is true)
+            return;
+
         // The Target Must Be Online And Connected To A Match Server
         if (targetSession?.Metadata.MatchServerConnectedTo is not MatchServer matchServer)
             return;

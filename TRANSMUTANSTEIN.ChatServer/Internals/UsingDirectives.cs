@@ -1,4 +1,4 @@
-﻿global using ASPIRE.Common;
+global using ASPIRE.Common;
 global using ASPIRE.Common.Communication;
 global using ASPIRE.Common.Enumerations.Match;
 global using ASPIRE.Common.Enumerations.Statistics;
@@ -7,6 +7,7 @@ global using ASPIRE.Common.Extensions.Cryptography;
 global using ASPIRE.Common.Constants;
 global using ASPIRE.Common.Extensions.Logging;
 global using ASPIRE.Common.Extensions.Services;
+global using ASPIRE.Common.Models.Streamer;
 
 // TODO: Move These To A Shared Project And Remove Inter-Project Dependencies
 global using KONGOR.MasterServer.Configuration;
@@ -47,6 +48,7 @@ global using System.Net.Sockets;
 global using System.Reflection;
 global using System.Runtime.CompilerServices;
 global using System.Text;
+global using System.Text.Json;
 global using System.Threading.Channels;
 global using System.Threading.RateLimiting;
 
@@ -54,6 +56,8 @@ global using TRANSMUTANSTEIN.ChatServer.Attributes;
 global using TRANSMUTANSTEIN.ChatServer.CommandProcessors.Channels;
 global using TRANSMUTANSTEIN.ChatServer.CommandProcessors.Connection;
 global using TRANSMUTANSTEIN.ChatServer.CommandProcessors.Matchmaking;
+global using TRANSMUTANSTEIN.ChatServer.CommandProcessors.Social;
+global using TRANSMUTANSTEIN.ChatServer.CommandProcessors.Statistics;
 global using TRANSMUTANSTEIN.ChatServer.Configuration;
 global using TRANSMUTANSTEIN.ChatServer.Contracts;
 global using TRANSMUTANSTEIN.ChatServer.Domain.Core;

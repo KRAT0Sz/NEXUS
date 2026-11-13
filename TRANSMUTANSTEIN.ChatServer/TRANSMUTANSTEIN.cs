@@ -1,4 +1,4 @@
-﻿namespace TRANSMUTANSTEIN.ChatServer;
+namespace TRANSMUTANSTEIN.ChatServer;
 
 public class TRANSMUTANSTEIN
 {
@@ -77,6 +77,9 @@ public class TRANSMUTANSTEIN
         // Configure Match Server Settings
         builder.Services.Configure<MatchServerSettings>(builder.Configuration.GetSection(MatchServerSettings.SectionName));
 
+        // Configure KONGOR PROTECT Settings
+        builder.Services.Configure<KongorProtectSettings>(builder.Configuration.GetSection(KongorProtectSettings.SectionName));
+
         // Add The Database Context
         builder.AddSqlServerDbContext<MerrickContext>("MERRICK", configureSettings: null, configureDbContextOptions: options =>
         {
@@ -116,8 +119,26 @@ public class TRANSMUTANSTEIN
         // Register Flood Prevention Service
         builder.Services.AddSingleton<FloodPreventionService>();
 
+        // Register KONGOR PROTECT Anti-Toxicity Moderation Engine
+        builder.Services.AddSingleton<KongorProtectService>();
+
+        // Register Streamer Mode Service For Anonymous Pseudonyms And Privacy Protection
+        builder.Services.AddSingleton<StreamerModeService>();
+
+        // Register The Match Server Reconnect Query That Asks Match Servers Whether A Player's Slot Can Still Be Reclaimed
+        builder.Services.AddSingleton<MatchServerReconnectQuery>();
+
+        // Register The Match Lock Service That Verifies A Match Lock Before Its Player Is Sent Back To The Locked Match
+        builder.Services.AddSingleton<MatchLockService>();
+
+        // Register Leaver Penalty Service That Assesses Matchmaking Cooldowns For In-Match Abandonment
+        builder.Services.AddSingleton<LeaverPenaltyService>();
+
         // Register Account Logout Subscriber Service That Consumes Force-Logout Signals Published By The Master Server
         builder.Services.AddHostedService<LogoutMonitor>();
+
+        // Register Match Lock Refusal Subscriber Service That Consumes The Master Server's Refusals Of Locked Players' Client Connections, Which Match Servers Do Not Report Over Chat
+        builder.Services.AddHostedService<MatchLockRefusalMonitor>();
 
         // Register The Stale Host Reaper That Removes Cached Match Servers And Managers With No Live Chat Session
         builder.Services.AddHostedService<StaleHostReaper>();

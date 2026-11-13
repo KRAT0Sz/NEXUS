@@ -1,4 +1,4 @@
-﻿namespace TRANSMUTANSTEIN.ChatServer.Domain.Core;
+namespace TRANSMUTANSTEIN.ChatServer.Domain.Core;
 
 public class ClientChatSession(ConnectionContext connection, IServiceProvider serviceProvider) : ChatSession(connection, serviceProvider)
 {
@@ -26,6 +26,43 @@ public class ClientChatSession(ConnectionContext connection, IServiceProvider se
     ///     The maximum number of channels cannot exceed the value of <see cref="ChatProtocol.MAX_CHANNELS_PER_CLIENT"/>.
     /// </summary>
     public HashSet<int> CurrentChannels { get; set; } = [];
+
+    /// <summary>
+    ///     Gets or sets the account IDs that this client has chosen to avoid in matchmaking.
+    /// </summary>
+    public HashSet<int> AvoidedAccountIDs { get; set; } = [];
+
+    /// <summary>
+    ///     Gets or sets the active Streamer Mode configuration for this session, if enabled.
+    /// </summary>
+    public StreamerModeConfiguration? StreamerConfiguration { get; set; }
+
+    /// <summary>
+    ///     Indicates whether Streamer Mode is currently active for this session.
+    /// </summary>
+    public bool IsStreamerModeActive => StreamerConfiguration is not null && StreamerConfiguration.Enabled;
+
+    /// <summary>
+    ///     Holds <see cref="PendingMatchLockReturn"/>, which is read and replaced from any thread.
+    /// </summary>
+    private MatchLockReturn? PendingReturn;
+
+    /// <summary>
+    ///     The return of this session's player to their locked match which is under way, or <see langword="null"/> when there is none.
+    ///     It is only ever replaced through <see cref="TryReplacePendingMatchLockReturn"/>, and the session's cleanup ends it.
+    /// </summary>
+    public MatchLockReturn? PendingMatchLockReturn => Volatile.Read(ref PendingReturn);
+
+    /// <summary>
+    ///     The address of the match server in the latest game which the client reported joining on this chat connection, or <see langword="null"/> before any and after it reported leaving.
+    ///     A game client which is already connected to a match server reports joining it as soon as its chat connection is accepted, before it reports logging in.
+    /// </summary>
+    public string? ReportedGameServerAddress { get; set; }
+
+    /// <summary>
+    ///     Whether the client has reported joining a game on this chat connection, and has not reported leaving it since.
+    /// </summary>
+    public bool ReportedJoiningGame => ReportedGameServerAddress is not null;
 
     /// <summary>
     ///     Surfaces the authenticated account's identifier to the base session, so that it can be pushed into the ambient log context while commands are processed.
@@ -96,11 +133,80 @@ public class ClientChatSession(ConnectionContext connection, IServiceProvider se
             return this;
         }
 
+        await RefreshMatchServerSessionCookie(distributedCacheStore, server);
+
         Metadata.MatchServerConnectedTo = server;
 
         UpdateStatus(ChatProtocol.ChatClientStatus.CHAT_CLIENT_STATUS_JOINING_GAME, server);
 
         return this;
+    }
+
+    /// <summary>
+    ///     Records this session's session cookie as the one which the client holds on the match server, so that the match server's duplicate session check is answered with it, and never kicks the client as a duplicate login.
+    ///     The records which the match server's client connections left for the session's own account and for every other account of the same user are each refreshed independently, and every failure is logged rather than thrown, so that it never stops the other refreshes or disturbs joining the match.
+    ///     The other accounts are left alone when a client connection of the session's own account was served with this session cookie, because the session is then a client of its own on a match server rather than a client in the match which logged in again in place.
+    ///     Every refresh which changes a record is logged, naming the account whose record changed, the match server, and this session's account, but never the session cookie, which authenticates its account.
+    /// </summary>
+    private async Task RefreshMatchServerSessionCookie(IDatabase distributedCacheStore, MatchServer server)
+    {
+        List<int> accountIDs;
+
+        try
+        {
+            // A Client Which Logs In Again During Its Match Pushes The Session Cookie Of Whichever Account It Logged In With To Its Match Server ("CHostClient::UpdateCookie"), So The Match Server May Hold It For Another Account Of The Same User
+            // Every Other Account Is Refreshed, Rather Than Only The First Which Was Served, Because A Record Which An Earlier Match On The Same Match Server Left Cannot Be Told Apart From The Record Of The Account In The Match
+            accountIDs = SRPAuthenticationHandlers.LoginAffectsOtherAccounts(Account.Type) && await WasServedWithThisLogin(distributedCacheStore, server) is false
+                ? [Account.ID, .. Account.User.Accounts.Select(account => account.ID).Where(accountID => accountID != Account.ID)]
+                : [Account.ID];
+        }
+
+        catch (Exception exception)
+        {
+            Log.Error(exception, @"Failed To List The Accounts Whose Session Cookies Account ""{AccountName}"" Refreshes On Match Server ID ""{MatchServerID}""", Account.Name, server.ID);
+
+            return;
+        }
+
+        foreach (int accountID in accountIDs)
+        {
+            try
+            {
+                // Only A Change Is Logged, Because Every Chat Connection Of A Client In Its Match Reports Joining That Match Server Again, While Only A New Login Changes The Record
+                if (await distributedCacheStore.RefreshClientSessionCookie(accountID, server.ID, Metadata.SessionCookie))
+                {
+                    Log.Information(@"Refreshed The Session Cookie Which The Client Of Account ID ""{RefreshedAccountID}"" Holds On Match Server ID ""{MatchServerID}"" To That Of Account ""{AccountName}""",
+                        accountID, server.ID, Account.Name);
+                }
+            }
+
+            catch (Exception exception)
+            {
+                Log.Error(exception, @"Failed To Refresh The Session Cookie Of Account ID ""{RefreshedAccountID}"" For Account ""{AccountName}"" On Match Server ID ""{MatchServerID}""", accountID, Account.Name, server.ID);
+            }
+        }
+    }
+
+    /// <summary>
+    ///     Decides whether a client connection of the session's own account was served with this session cookie, which only a client connecting on its own is, because a client which logs in again during its match is never served again.
+    ///     Such a client is not the one in the match, so refreshing the other accounts of its user, such as when it spectates the match of one of them, would get the account in the match kicked as a duplicate login.
+    ///     A failure to read it is logged, and counts as never served, so that the other accounts are refreshed, as a client which logs in again in place needs.
+    /// </summary>
+    private async Task<bool> WasServedWithThisLogin(IDatabase distributedCacheStore, MatchServer server)
+    {
+        try
+        {
+            GameCookie? ownRecord = await distributedCacheStore.GetStoredGameCookie(Account.ID);
+
+            return string.Equals(ownRecord?.ServedSessionCookie, Metadata.SessionCookie, StringComparison.Ordinal);
+        }
+
+        catch (Exception exception)
+        {
+            Log.Error(exception, @"Failed To Read Whether A Client Connection Of Account ""{AccountName}"" Was Served With Its Current Login, So It Refreshes The Session Cookies Of Its User's Other Accounts On Match Server ID ""{MatchServerID}""", Account.Name, server.ID);
+
+            return false;
+        }
     }
 
     public async Task<ClientChatSession> JoinMatch(IDatabase distributedCacheStore, int matchID, bool joinMatchChannel = true)
@@ -293,6 +399,76 @@ public class ClientChatSession(ConnectionContext connection, IServiceProvider se
     }
 
     /// <summary>
+    ///     Sends the client to the match of a match server, which the game client connects to unless it is already connected to a match server.
+    ///     A reminder repeats an earlier request, and the game client acts on both alike, telling them apart only when it reports which one it acted on.
+    /// </summary>
+    public ClientChatSession SendAutoMatchConnect(MatchType arrangedMatchType, int matchID, string serverAddress, ushort serverPort, bool reminder)
+    {
+        ChatBuffer connect = new ();
+
+        connect.WriteCommand(ChatProtocol.Command.CHAT_CMD_AUTO_MATCH_CONNECT);
+        connect.WriteInt8((byte) arrangedMatchType);       // The Arranged Match Type, As A "MatchType" Value, Which Mirrors The Game Client's "EArrangedMatchType"
+        connect.WriteInt32(matchID);                       // The Match Server's Match ID
+        connect.WriteString(serverAddress);                // The Match Server's IP Address
+        connect.WriteInt16(unchecked((short) serverPort)); // The Match Server's Port, Which The Game Client Reads As Unsigned, So A Port Above The Signed Range Is Reinterpreted Rather Than Rejected
+
+        // A Random Integer To Prevent Routers/Firewalls From Dropping Packets As Duplicates When Multiple Players Share The Same IP Address
+        // A Value Of 0xFFFFFFFF (uint(-1) Which Wraps Around By Overflow) Indicates A Connection Reminder Rather Than The Initial Connection Request
+        connect.WriteInt32(reminder ? -1 : Random.Shared.Next());
+
+        Send(connect);
+
+        return this;
+    }
+
+    /// <summary>
+    ///     Sends a notice, which the game client shows as a server message from the given sender.
+    /// </summary>
+    public ClientChatSession SendNotice(string senderName, string message)
+    {
+        ChatBuffer notice = new ();
+
+        notice.WriteCommand(ChatProtocol.Command.CHAT_CMD_MESSAGE_ALL);
+        notice.WriteString(senderName); // Sender's Name
+        notice.WriteString(message);    // Message Content
+
+        Send(notice);
+
+        return this;
+    }
+
+    /// <summary>
+    ///     Tells the game client that it cannot join matchmaking because it is temporarily banned, which the game client shows as its "Temporary Ban" popup, counting down the given seconds.
+    ///     The game client leaves its group on this reply without telling the chat server ("CChatManager::HandleTMMJoinFailed"), and its countdown is for display only, clearing on the next group update.
+    /// </summary>
+    public ClientChatSession SendMatchmakingBan(uint secondsRemaining)
+    {
+        ChatBuffer failure = new ();
+
+        failure.WriteCommand(ChatProtocol.Matchmaking.NET_CHAT_CL_TMM_FAILED_TO_JOIN);
+        failure.WriteInt8(Convert.ToByte(ChatProtocol.TMMFailedToJoinReason.TMMFTJR_BANNED)); // Failure Reason
+        failure.WriteInt32(unchecked((int) secondsRemaining));                                 // Seconds Remaining, Which The Game Client Reads As Unsigned
+
+        Send(failure);
+
+        return this;
+    }
+
+    /// <summary>
+    ///     Replaces the pending return to the locked match with the replacement, but only while the pending return is still the expected one, and cancels the expected return when it is replaced.
+    ///     Returns whether the pending return was replaced.
+    /// </summary>
+    public bool TryReplacePendingMatchLockReturn(MatchLockReturn? expected, MatchLockReturn? replacement)
+    {
+        if (Interlocked.CompareExchange(ref PendingReturn, replacement, expected) != expected)
+            return false;
+
+        expected?.Cancel();
+
+        return true;
+    }
+
+    /// <summary>
     ///     Tracks whether the per-account cleanup performed by <see cref="CleanUpSession"/> has already run for this session.
     ///     Required because both <see cref="Terminate"/> and <see cref="OnDisconnected"/> route through the same cleanup, and only one of them should take effect.
     /// </summary>
@@ -323,6 +499,9 @@ public class ClientChatSession(ConnectionContext connection, IServiceProvider se
 
         // Remove Any Pending Clan Creations Founded By This Account
         PendingClan.Creations.TryRemove(Account.ID, out _);
+
+        // End Any Pending Return To A Locked Match, Which Stops Its Reminders
+        Interlocked.Exchange(ref PendingReturn, null)?.Cancel();
 
         // Send Disconnection Notification To Online Peers (Friends And Clan Members)
         UpdateStatus(ChatProtocol.ChatClientStatus.CHAT_CLIENT_STATUS_DISCONNECTED);
@@ -440,17 +619,19 @@ public class ClientChatSession(ConnectionContext connection, IServiceProvider se
             .Where(chatSession => friendIDs.Any(friendID => friendID == chatSession.Account.ID) || clanMemberIDs.Any(clanMemberID => clanMemberID == chatSession.Account.ID))
             .Select(chatSession => chatSession).Distinct()]; // Get All Online Friends And Clan Members
 
+        bool isStreamer = IsStreamerModeActive;
+
         ChatBuffer update = new ();
 
         update.WriteCommand(ChatProtocol.Command.CHAT_CMD_UPDATE_STATUS);
-        update.WriteInt32(Account.ID);                          // Client's Account ID
-        update.WriteInt8(Convert.ToByte(status));               // Client's Status
-        update.WriteInt8(Account.GetChatClientFlags());         // Client's Flags (Chat Client Type)
-        update.WriteInt32(Account.Clan?.ID ?? 0);               // Client's Clan ID
-        update.WriteString(Account.Clan?.Name ?? string.Empty); // Client's Clan Name
-        update.WriteString(Account.ChatSymbolNoPrefixCode);     // Chat Symbol
-        update.WriteString(Account.NameColourNoPrefixCode);     // Name Colour
-        update.WriteString(Account.IconNoPrefixCode);           // Account Icon
+        update.WriteInt32(Account.ID);                                                         // Client's Account ID
+        update.WriteInt8(Convert.ToByte(status));                                              // Client's Status
+        update.WriteInt8(Account.GetChatClientFlags());                                        // Client's Flags (Chat Client Type)
+        update.WriteInt32(isStreamer ? 0 : (Account.Clan?.ID ?? 0));                           // Client's Clan ID
+        update.WriteString(isStreamer ? string.Empty : (Account.Clan?.Name ?? string.Empty)); // Client's Clan Name
+        update.WriteString(isStreamer ? string.Empty : Account.ChatSymbolNoPrefixCode);        // Chat Symbol
+        update.WriteString(isStreamer ? string.Empty : Account.NameColourNoPrefixCode);        // Name Colour
+        update.WriteString(isStreamer ? "ai.Default Icon" : Account.IconNoPrefixCode);         // Account Icon
 
         if (status is ChatProtocol.ChatClientStatus.CHAT_CLIENT_STATUS_JOINING_GAME || status is ChatProtocol.ChatClientStatus.CHAT_CLIENT_STATUS_IN_GAME)
         {
@@ -461,14 +642,22 @@ public class ClientChatSession(ConnectionContext connection, IServiceProvider se
                 return;
             }
 
-            update.WriteString($"{matchServer.IPAddress}:{matchServer.Port}"); // Server Address This Client Is Connected To, In The Form Of "X.X.X.X:P"
+            // In Streamer Mode, conceal match server IP and port from friends and clan members to prevent stream-sniping and DDoS
+            string serverAddress = isStreamer && StreamerConfiguration?.HideServerAddress is true
+                ? string.Empty
+                : $"{matchServer.IPAddress}:{matchServer.Port}";
+
+            update.WriteString(serverAddress); // Server Address This Client Is Connected To, In The Form Of "X.X.X.X:P"
 
             if (status is ChatProtocol.ChatClientStatus.CHAT_CLIENT_STATUS_IN_GAME)
             {
-                update.WriteString(MatchInformation?.MatchName ?? string.Empty);                // Match Name
-                update.WriteInt32(MatchInformation?.MatchID ?? 0);                              // Match ID
+                string matchName = isStreamer ? string.Empty : (MatchInformation?.MatchName ?? string.Empty);
+                int matchID = isStreamer ? 0 : (MatchInformation?.MatchID ?? 0);
 
-                bool hasExtendedInfo = MatchInformation is not null;
+                update.WriteString(matchName);                                                  // Match Name
+                update.WriteInt32(matchID);                                                     // Match ID
+
+                bool hasExtendedInfo = MatchInformation is not null && isStreamer.Equals(false);
                 update.WriteBool(hasExtendedInfo);                                              // Has Extended Server Info
 
                 if (hasExtendedInfo && MatchInformation is not null)

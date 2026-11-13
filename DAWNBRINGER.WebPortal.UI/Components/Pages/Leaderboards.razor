@@ -1,0 +1,142 @@
+@page "/leaderboard"
+
+<PageTitle>Leaderboards - Project KONGOR</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="px-4 px-sm-6 pt-8">
+
+    @* Page Header *@
+    <MudStack AlignItems="AlignItems.Center" Spacing="2" Class="mb-6 animate-fade-in">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.EmojiEvents" Size="Size.Large" Color="Color.Primary" />
+            <MudText Typo="Typo.h4" Class="section-header">Global Leaderboard</MudText>
+        </MudStack>
+        <MudText Typo="Typo.body1" Align="Align.Center" Color="Color.Secondary" Style="max-width: 600px;">
+            The top Heroes Of Newerth competitors ranked by Season MMR and match performance.
+        </MudText>
+    </MudStack>
+
+    @* Leaderboard Tabs & Table *@
+    <MudCard Class="glass-card pa-4 mb-6 animate-fade-in-delay-1" Elevation="0">
+        <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" TabPanelsClass="pa-4" Color="Color.Primary">
+            <MudTabPanel Text="Ranked Normal (FoC)" Icon="@Icons.Material.Filled.Shield">
+                <MudTable Items="@RankedEntries" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Class="glass-card">
+                    <HeaderContent>
+                        <MudTh Style="width: 80px;">Rank</MudTh>
+                        <MudTh>Player</MudTh>
+                        <MudTh Style="width: 120px;">Clan</MudTh>
+                        <MudTh Style="width: 140px;">MMR</MudTh>
+                        <MudTh Style="width: 120px;">Win Rate</MudTh>
+                        <MudTh Style="width: 140px;">Record (W/L)</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Rank">
+                            @if (context.Rank == 1)
+                            {
+                                <MudChip T="string" Color="Color.Warning" Size="Size.Small" Icon="@Icons.Material.Filled.WorkspacePremium">#1</MudChip>
+                            }
+                            else if (context.Rank == 2)
+                            {
+                                <MudChip T="string" Color="Color.Secondary" Size="Size.Small">#2</MudChip>
+                            }
+                            else if (context.Rank == 3)
+                            {
+                                <MudChip T="string" Color="Color.Tertiary" Size="Size.Small">#3</MudChip>
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.body2" Class="font-weight-bold">#@context.Rank</MudText>
+                            }
+                        </MudTd>
+                        <MudTd DataLabel="Player">
+                            <MudText Typo="Typo.body1" Color="Color.Primary">@context.PlayerName</MudText>
+                        </MudTd>
+                        <MudTd DataLabel="Clan">
+                            @if (string.IsNullOrEmpty(context.ClanTag) is false)
+                            {
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info">[@context.ClanTag]</MudChip>
+                            }
+                        </MudTd>
+                        <MudTd DataLabel="MMR">
+                            <MudText Typo="Typo.body1" Class="font-weight-bold">@context.Rating.ToString("F1")</MudText>
+                        </MudTd>
+                        <MudTd DataLabel="Win Rate">
+                            <MudText Typo="Typo.body2" Color="@(context.WinRate >= 50.0 ? Color.Success : Color.Error)">
+                                @context.WinRate.ToString("F1")%
+                            </MudText>
+                        </MudTd>
+                        <MudTd DataLabel="Record">
+                            <MudText Typo="Typo.body2">@context.Wins W - @context.Losses L</MudText>
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MudTabPanel>
+
+            <MudTabPanel Text="Casual Mode" Icon="@Icons.Material.Filled.SportsEsports">
+                <MudTable Items="@CasualEntries" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Class="glass-card">
+                    <HeaderContent>
+                        <MudTh Style="width: 80px;">Rank</MudTh>
+                        <MudTh>Player</MudTh>
+                        <MudTh Style="width: 120px;">Clan</MudTh>
+                        <MudTh Style="width: 140px;">MMR</MudTh>
+                        <MudTh Style="width: 120px;">Win Rate</MudTh>
+                        <MudTh Style="width: 140px;">Record (W/L)</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Rank">
+                            <MudText Typo="Typo.body2" Class="font-weight-bold">#@context.Rank</MudText>
+                        </MudTd>
+                        <MudTd DataLabel="Player">
+                            <MudText Typo="Typo.body1" Color="Color.Primary">@context.PlayerName</MudText>
+                        </MudTd>
+                        <MudTd DataLabel="Clan">
+                            @if (string.IsNullOrEmpty(context.ClanTag) is false)
+                            {
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info">[@context.ClanTag]</MudChip>
+                            }
+                        </MudTd>
+                        <MudTd DataLabel="MMR">
+                            <MudText Typo="Typo.body1" Class="font-weight-bold">@context.Rating.ToString("F1")</MudText>
+                        </MudTd>
+                        <MudTd DataLabel="Win Rate">
+                            <MudText Typo="Typo.body2" Color="@(context.WinRate >= 50.0 ? Color.Success : Color.Error)">
+                                @context.WinRate.ToString("F1")%
+                            </MudText>
+                        </MudTd>
+                        <MudTd DataLabel="Record">
+                            <MudText Typo="Typo.body2">@context.Wins W - @context.Losses L</MudText>
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MudTabPanel>
+        </MudTabs>
+    </MudCard>
+
+</MudContainer>
+
+@code {
+    public record LeaderboardDisplayItem(int Rank, string PlayerName, string ClanTag, double Rating, int Wins, int Losses)
+    {
+        public double WinRate => (Wins + Losses) > 0 ? (double)Wins / (Wins + Losses) * 100.0 : 0.0;
+    }
+
+    private List<LeaderboardDisplayItem> RankedEntries { get; set; } =
+    [
+        new (1, "MoonMeander", "tdM", 2045.2, 342, 85),
+        new (2, "AngryTestie", "EZ", 2012.8, 412, 120),
+        new (3, "KheZu", "BM", 1998.4, 290, 78),
+        new (4, "Mynuts", "tdM", 1982.0, 250, 80),
+        new (5, "bkid", "5", 1965.5, 310, 115),
+        new (6, "Tralfamadore", "coL", 1954.2, 280, 105),
+        new (7, "Scandal", "RoX", 1941.0, 220, 92),
+        new (8, "Sender", "sG", 1935.6, 210, 88),
+        new (9, "slickz", "fntc", 1928.1, 195, 75),
+        new (10, "insania", "sG", 1920.4, 240, 110)
+    ];
+
+    private List<LeaderboardDisplayItem> CasualEntries { get; set; } =
+    [
+        new (1, "TestieCasual", "EZ", 1850.5, 120, 25),
+        new (2, "MidWarsKing", "MW", 1820.0, 195, 55),
+        new (3, "CasualHero", "FUN", 1795.3, 140, 48)
+    ];
+}

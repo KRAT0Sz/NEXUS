@@ -3,7 +3,7 @@ namespace KONGOR.MasterServer.Controllers.ClientRequester;
 [ApiController]
 [Route("client_requester.php")]
 [Consumes("application/x-www-form-urlencoded")]
-public partial class ClientRequesterController(MerrickContext databaseContext, IDatabase distributedCache, HeroUsageStatisticsService heroUsageStatisticsService, ILogger<ClientRequesterController> logger) : ControllerBase
+public partial class ClientRequesterController(MerrickContext databaseContext, IDatabase distributedCache, HeroUsageStatisticsService heroUsageStatisticsService, GlobalLeaderboardService globalLeaderboardService, ILogger<ClientRequesterController> logger) : ControllerBase
 {
     # region Client Requester Controller Description
     /*
@@ -22,6 +22,7 @@ public partial class ClientRequesterController(MerrickContext databaseContext, I
     private MerrickContext MerrickContext { get; } = databaseContext;
     private IDatabase DistributedCache { get; } = distributedCache;
     private HeroUsageStatisticsService HeroUsageStatistics { get; } = heroUsageStatisticsService;
+    private GlobalLeaderboardService GlobalLeaderboardService { get; } = globalLeaderboardService;
     private ILogger Logger { get; } = logger;
 
     [HttpPost(Name = "Client Requester All-In-One")]
@@ -30,7 +31,7 @@ public partial class ClientRequesterController(MerrickContext databaseContext, I
         string? function = Request.Query["f"].SingleOrDefault() ?? Request.Form["f"].SingleOrDefault();
 
         // Authentication Establishes The Session, And The Client Sends The Recent Matches Lookup Without A Session Cookie Because The Original API Did Not Authenticate It
-        bool endpointRequiresCookieValidation = function is not "auth" and not "pre_auth" and not "srpAuth" and not "grab_last_matches_from_nick";
+        bool endpointRequiresCookieValidation = function is not "auth" and not "pre_auth" and not "srpAuth" and not "grab_last_matches_from_nick" and not "autocompleteNicks" and not "nick2id" and not "clan_nameCheck";
         bool accountSessionCookieIsValid = (await DistributedCache.ValidateAccountSessionCookie(Request.Form["cookie"].ToString() ?? "NULL")).IsValid;
 
         if (endpointRequiresCookieValidation.Equals(true) && accountSessionCookieIsValid.Equals(false))
@@ -130,6 +131,21 @@ public partial class ClientRequesterController(MerrickContext databaseContext, I
             "delete_notification"           => await DeleteNotification(),
             "remove_all_notifications"      => await RemoveAllNotifications(),
 
+            // account lookup & friends
+            "autocompleteNicks"             => await AutoCompleteNicks(),
+            "nick2id"                       => await NicknameToID(),
+            "new_ignored"                   => AddIgnored(),
+            "remove_ignored"                => RemoveIgnored(),
+            "change_buddy_group"            => ChangeBuddyGroup(),
+
+            // clans
+            "clan_nameCheck"                => await CheckClanName(),
+            "clan_list"                     => await GetClanList(),
+
+            // maintenance & auth
+            "reset_stats"                   => await ResetStatistics(),
+            "switch_auth"                   => await SwitchAuthentication(),
+
             // session
             "logout"                        => await HandleLogout(),
 
@@ -162,6 +178,21 @@ public partial class ClientRequesterController(MerrickContext databaseContext, I
             // guides
             "get_guide_list_filtered"       => await GetGuideList(),
             "get_guide"                     => await GetGuide(),
+
+            // account lookup & friends
+            "autocompleteNicks"             => await AutoCompleteNicks(),
+            "nick2id"                       => await NicknameToID(),
+            "new_ignored"                   => AddIgnored(),
+            "remove_ignored"                => RemoveIgnored(),
+            "change_buddy_group"            => ChangeBuddyGroup(),
+
+            // clans
+            "clan_nameCheck"                => await CheckClanName(),
+            "clan_list"                     => await GetClanList(),
+
+            // maintenance & auth
+            "reset_stats"                   => await ResetStatistics(),
+            "switch_auth"                   => await SwitchAuthentication(),
 
             // default
             _                               => throw new NotImplementedException($"Unsupported Client Requester Controller Form Parameter: f={Request.Form["f"].Single()}")

@@ -1,7 +1,7 @@
 namespace TRANSMUTANSTEIN.ChatServer.CommandProcessors.Communication;
 
 [ChatCommand(ChatProtocol.Command.CHAT_CMD_WHISPER)]
-public class SendWhisper(FloodPreventionService floodPreventionService) : ISynchronousCommandProcessor<ClientChatSession>
+public class SendWhisper(FloodPreventionService floodPreventionService, KongorProtectService kongorProtectService) : ISynchronousCommandProcessor<ClientChatSession>
 {
     public void Process(ClientChatSession session, ChatBuffer buffer)
     {
@@ -11,8 +11,32 @@ public class SendWhisper(FloodPreventionService floodPreventionService) : ISynch
         if (floodPreventionService.CheckAndHandleFloodPrevention(session) is false)
             return;
 
+        string message = requestData.Message;
+
+        // KONGOR PROTECT: Inspect whispers for non-staff players
+        if (session.Account.Type is not AccountType.Staff)
+        {
+            KongorProtectResult protectResult = kongorProtectService.Inspect(message, session.Account.ID);
+
+            if (protectResult.IsBlocked)
+            {
+                ChatBuffer warningBuffer = new ();
+                warningBuffer.WriteCommand(ChatProtocol.Command.CHAT_CMD_WHISPER);
+                warningBuffer.WriteString("KONGOR PROTECT");
+                warningBuffer.WriteString("Your whisper was blocked due to prohibited language.");
+                session.Send(warningBuffer);
+
+                Log.Warning(@"[KONGOR PROTECT] Blocked whisper from Account ID {AccountID} to ""{Target}""",
+                    session.Account.ID, requestData.TargetName);
+
+                return;
+            }
+
+            message = protectResult.SanitisedMessage;
+        }
+
         Whisper
-            .Create(requestData.Message)
+            .Create(message)
             .Send(session, requestData.TargetName);
     }
 }

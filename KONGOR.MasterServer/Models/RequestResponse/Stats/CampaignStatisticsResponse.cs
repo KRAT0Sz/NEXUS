@@ -3,7 +3,7 @@ namespace KONGOR.MasterServer.Models.RequestResponse.Stats;
 /// <summary>
 ///     Response for show_stats with table="campaign" (ranked matchmaking statistics with cam_ prefix).
 /// </summary>
-public class CampaignStatisticsResponse(Account account, AccountStatistics statistics, AggregateStatistics aggregates)
+public class CampaignStatisticsResponse(Account account, AccountStatistics statistics, AggregateStatistics aggregates, int? currentRanking = null, int? highestRanking = null)
 {
     // TODO: Implement Match History Retrieval (matchIds And matchDates Require Match History Data)
 
@@ -654,7 +654,7 @@ public class CampaignStatisticsResponse(Account account, AccountStatistics stati
     ///     Only populated for players with Immortal rank (medal 21+).
     /// </summary>
     [PHPProperty("highest_ranking")]
-    public int? HighestRanking => RankExtensions.GetRank(statistics.SkillRating) is Rank.IMMORTAL ? 1 : null; // TODO: Implement Actual Leaderboard Ranking Retrieval
+    public int? HighestRanking => highestRanking ?? (RankExtensions.GetRank(statistics.SkillRating) is Rank.IMMORTAL ? 1 : null);
 
     /// <summary>
     ///     The current campaign level (season medal) in this season, which the client translates into the rank name and the rank icon.
@@ -667,7 +667,7 @@ public class CampaignStatisticsResponse(Account account, AccountStatistics stati
     ///     Only populated for players with Immortal rank (medal 21+).
     /// </summary>
     [PHPProperty("current_ranking")]
-    public int? CurrentRanking => RankExtensions.GetRank(statistics.SkillRating) is Rank.IMMORTAL ? 1 : null; // TODO: Implement Actual Leaderboard Ranking Retrieval
+    public int? CurrentRanking => currentRanking ?? (RankExtensions.GetRank(statistics.SkillRating) is Rank.IMMORTAL ? 1 : null);
 
     /// <summary>
     ///     The percentage progress towards the next campaign level.
