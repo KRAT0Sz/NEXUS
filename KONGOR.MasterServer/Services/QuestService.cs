@@ -12,210 +12,118 @@ public class QuestService(MerrickContext databaseContext, ILogger<QuestService> 
     private ILogger Logger { get; } = logger;
 
     /// <inheritdoc/>
-    public async Task EnsureWarEffortSeedDataAsync()
+    public async Task EnsureQuestSeedDataAsync()
     {
-        List<Quest> defaultQuests =
-        [
-                new ()
-                {
-                    QuestKey = "daily_games_won",
-                    Title = "Victory March",
-                    Description = "Win 1 battle in any mode",
-                    Category = QuestCategory.Daily,
-                    TargetType = QuestTargetType.MatchWin,
-                    TriggerName = "achievement_value_games_won",
-                    TargetCount = 1,
-                    ReputationReward = 25,
-                    TypeID = 1,
-                    TypeKey = "games_won",
-                    RewardSilver = 50,
-                    RewardTickets = 1,
-                    ProductIconPath = "/ui/fe2/quests/quest_icons/games_won.tga",
-                    IsActive = true
-                },
-                new ()
-                {
-                    QuestKey = "daily_caldavar_won",
-                    Title = "Forests of Caldavar",
-                    Description = "Achieve victory on Forests of Caldavar",
-                    Category = QuestCategory.Daily,
-                    TargetType = QuestTargetType.MatchWin,
-                    TriggerName = "achievement_value_caldavar_won",
-                    TargetCount = 1,
-                    ReputationReward = 30,
-                    TypeID = 2,
-                    TypeKey = "caldavar_won",
-                    RewardSilver = 60,
-                    RewardTickets = 1,
-                    ProductIconPath = "/ui/fe2/quests/quest_icons/caldavar_won.tga",
-                    IsActive = true
-                },
-                new ()
-                {
-                    QuestKey = "daily_mid_wars_won",
-                    Title = "Mid Wars Brawler",
-                    Description = "Claim victory in Mid Wars",
-                    Category = QuestCategory.Daily,
-                    TargetType = QuestTargetType.MatchWin,
-                    TriggerName = "achievement_value_mid_wars_won",
-                    TargetCount = 1,
-                    ReputationReward = 25,
-                    TypeID = 3,
-                    TypeKey = "mid_wars_won",
-                    RewardSilver = 50,
-                    RewardTickets = 1,
-                    ProductIconPath = "/ui/fe2/quests/quest_icons/mid_wars_won.tga",
-                    IsActive = true
-                },
-                new ()
-                {
-                    QuestKey = "daily_hero_kills",
-                    Title = "Deadly Hunter",
-                    Description = "Slay 5 enemy heroes in combat",
-                    Category = QuestCategory.Daily,
-                    TargetType = QuestTargetType.Kills,
-                    TriggerName = "achievement_value_prophet_kills",
-                    TargetCount = 5,
-                    ReputationReward = 25,
-                    TypeID = 4,
-                    TypeKey = "prophet_kills",
-                    RewardSilver = 60,
-                    RewardTickets = 1,
-                    ProductIconPath = "/ui/fe2/quests/quest_icons/prophet_kills.tga",
-                    IsActive = true
-                },
-                new ()
-                {
-                    QuestKey = "daily_role_support",
-                    Title = "Guardian of Newerth",
-                    Description = "Play 1 match as a Support hero",
-                    Category = QuestCategory.Daily,
-                    TargetType = QuestTargetType.MatchesPlayed,
-                    TriggerName = "achievement_value_role_played",
-                    HeroRoleString = "support",
-                    TargetCount = 1,
-                    ReputationReward = 20,
-                    TypeID = 5,
-                    TypeKey = "role_support",
-                    RewardSilver = 40,
-                    RewardTickets = 0,
-                    ProductIconPath = "/ui/fe2/quests/quest_icons/role_support.tga",
-                    IsActive = true
-                },
-                new ()
-                {
-                    QuestKey = "daily_role_carry_ganker",
-                    Title = "Apex Striker",
-                    Description = "Play 1 match as a Carry/Ganker hero",
-                    Category = QuestCategory.Daily,
-                    TargetType = QuestTargetType.MatchesPlayed,
-                    TriggerName = "achievement_value_role_played",
-                    HeroRoleString = "carry,ganker",
-                    TargetCount = 1,
-                    ReputationReward = 25,
-                    TypeID = 6,
-                    TypeKey = "role_carry_ganker",
-                    RewardSilver = 50,
-                    RewardTickets = 1,
-                    ProductIconPath = "/ui/fe2/quests/quest_icons/role_carry_ganker.tga",
-                    IsActive = true
-                },
-                new ()
-                {
-                    QuestKey = "daily_legion_strength",
-                    Title = "Legion Might",
-                    Description = "Play 1 match as a Legion Strength hero",
-                    Category = QuestCategory.Daily,
-                    TargetType = QuestTargetType.MatchesPlayed,
-                    TriggerName = "achievement_value_attribute_played",
-                    TeamID = 1,
-                    AttributeCode = 0,
-                    TargetCount = 1,
-                    ReputationReward = 25,
-                    TypeID = 7,
-                    TypeKey = "legion_strength",
-                    RewardSilver = 50,
-                    RewardTickets = 0,
-                    ProductIconPath = "/ui/fe2/quests/quest_icons/legion_strength.tga",
-                    IsActive = true
-                },
-                new ()
-                {
-                    QuestKey = "daily_hellbourne_agility",
-                    Title = "Hellbourne Agility",
-                    Description = "Play 1 match as a Hellbourne Agility hero",
-                    Category = QuestCategory.Daily,
-                    TargetType = QuestTargetType.MatchesPlayed,
-                    TriggerName = "achievement_value_attribute_played",
-                    TeamID = 2,
-                    AttributeCode = 1,
-                    TargetCount = 1,
-                    ReputationReward = 25,
-                    TypeID = 8,
-                    TypeKey = "hellbourne_agility",
-                    RewardSilver = 50,
-                    RewardTickets = 0,
-                    ProductIconPath = "/ui/fe2/quests/quest_icons/hellbourne_agility.tga",
-                    IsActive = true
-                }
-            ];
+        QuestConfiguration config = JSONConfiguration.QuestConfiguration;
 
         List<Quest> existingQuests = await MerrickContext.Quests.ToListAsync();
         Dictionary<string, Quest> existingQuestsByKey = existingQuests.ToDictionary(q => q.QuestKey, StringComparer.OrdinalIgnoreCase);
 
-        foreach (Quest defaultQuest in defaultQuests)
+        foreach (QuestDefinitionConfiguration questConfig in config.Quests)
         {
-            if (existingQuestsByKey.TryGetValue(defaultQuest.QuestKey, out Quest? existing))
+            if (Enum.TryParse(questConfig.Category, true, out QuestCategory category).Equals(false))
+                category = QuestCategory.Daily;
+
+            if (Enum.TryParse(questConfig.TargetType, true, out QuestTargetType targetType).Equals(false))
+                targetType = QuestTargetType.MatchWin;
+
+            if (existingQuestsByKey.TryGetValue(questConfig.QuestKey, out Quest? existing))
             {
-                existing.Title = defaultQuest.Title;
-                existing.Description = defaultQuest.Description;
-                existing.Category = defaultQuest.Category;
-                existing.TargetType = defaultQuest.TargetType;
-                existing.TriggerName = defaultQuest.TriggerName;
-                existing.TargetCount = defaultQuest.TargetCount;
-                existing.ReputationReward = defaultQuest.ReputationReward;
-                existing.TypeID = defaultQuest.TypeID;
-                existing.TypeKey = defaultQuest.TypeKey;
-                existing.RewardSilver = defaultQuest.RewardSilver;
-                existing.RewardTickets = defaultQuest.RewardTickets;
-                existing.ProductIconPath = defaultQuest.ProductIconPath;
-                existing.HeroProduct = defaultQuest.HeroProduct;
-                existing.HeroRoleString = defaultQuest.HeroRoleString;
-                existing.AttributeCode = defaultQuest.AttributeCode;
-                existing.AttackType = defaultQuest.AttackType;
-                existing.TeamID = defaultQuest.TeamID;
-                existing.IsActive = defaultQuest.IsActive;
+                existing.Title = questConfig.Title;
+                existing.Description = questConfig.Description;
+                existing.Category = category;
+                existing.TargetType = targetType;
+                existing.TriggerName = questConfig.TriggerName;
+                existing.TargetCount = questConfig.TargetCount;
+                existing.ReputationReward = questConfig.ReputationReward;
+                existing.TypeID = questConfig.TypeID;
+                existing.TypeKey = questConfig.TypeKey;
+                existing.RewardSilver = questConfig.RewardSilver;
+                existing.RewardGold = questConfig.RewardGold;
+                existing.RewardTickets = questConfig.RewardTickets;
+                existing.RewardUpgradeCode = questConfig.RewardUpgradeCode;
+                existing.ProductIconPath = questConfig.ProductIconPath;
+                existing.HeroProduct = questConfig.HeroProduct;
+                existing.HeroRoleString = questConfig.HeroRoleString;
+                existing.AttributeCode = questConfig.AttributeCode;
+                existing.AttackType = questConfig.AttackType;
+                existing.TeamID = questConfig.TeamID;
+                existing.IsActive = questConfig.IsActive;
             }
             else
             {
-                await MerrickContext.Quests.AddAsync(defaultQuest);
+                Quest newQuest = new ()
+                {
+                    QuestKey = questConfig.QuestKey,
+                    Title = questConfig.Title,
+                    Description = questConfig.Description,
+                    Category = category,
+                    TargetType = targetType,
+                    TriggerName = questConfig.TriggerName,
+                    TargetCount = questConfig.TargetCount,
+                    ReputationReward = questConfig.ReputationReward,
+                    TypeID = questConfig.TypeID,
+                    TypeKey = questConfig.TypeKey,
+                    RewardSilver = questConfig.RewardSilver,
+                    RewardGold = questConfig.RewardGold,
+                    RewardTickets = questConfig.RewardTickets,
+                    RewardUpgradeCode = questConfig.RewardUpgradeCode,
+                    ProductIconPath = questConfig.ProductIconPath,
+                    HeroProduct = questConfig.HeroProduct,
+                    HeroRoleString = questConfig.HeroRoleString,
+                    AttributeCode = questConfig.AttributeCode,
+                    AttackType = questConfig.AttackType,
+                    TeamID = questConfig.TeamID,
+                    IsActive = questConfig.IsActive
+                };
+
+                await MerrickContext.Quests.AddAsync(newQuest);
             }
         }
 
-        bool bagsExist = await MerrickContext.WarEffortBags.AnyAsync();
+        List<WarEffortBag> existingBags = await MerrickContext.WarEffortBags.ToListAsync();
+        Dictionary<int, WarEffortBag> existingBagsByNumber = existingBags.ToDictionary(b => b.BagNumber);
 
-        if (bagsExist.Equals(false))
+        foreach (QuestBagConfiguration bagConfig in config.Bags)
         {
-            List<WarEffortBag> defaultBags =
-            [
-                new () { BagNumber = 1,  Name = "Bronze Satchel I",        RequiredReputation = 50,  RewardType = "MMPOINTS", RewardSilver = 50,  RewardGold = 0,   RewardTickets = 0,  IsActive = true },
-                new () { BagNumber = 2,  Name = "Bronze Satchel II",       RequiredReputation = 75,  RewardType = "MMPOINTS", RewardSilver = 75,  RewardGold = 0,   RewardTickets = 0,  IsActive = true },
-                new () { BagNumber = 3,  Name = "Silver Satchel I",        RequiredReputation = 100, RewardType = "MMPOINTS", RewardSilver = 100, RewardGold = 0,   RewardTickets = 1,  IsActive = true },
-                new () { BagNumber = 4,  Name = "Silver Satchel II",       RequiredReputation = 125, RewardType = "MMPOINTS", RewardSilver = 125, RewardGold = 0,   RewardTickets = 1,  IsActive = true },
-                new () { BagNumber = 5,  Name = "Silver Satchel III",      RequiredReputation = 150, RewardType = "MMPOINTS", RewardSilver = 150, RewardGold = 0,   RewardTickets = 2,  IsActive = true },
-                new () { BagNumber = 6,  Name = "Gold Chest I",            RequiredReputation = 175, RewardType = "POINTS",   RewardSilver = 100, RewardGold = 10,  RewardTickets = 1,  IsActive = true },
-                new () { BagNumber = 7,  Name = "Gold Chest II",           RequiredReputation = 200, RewardType = "POINTS",   RewardSilver = 150, RewardGold = 20,  RewardTickets = 1,  IsActive = true },
-                new () { BagNumber = 8,  Name = "Gold Chest III",          RequiredReputation = 225, RewardType = "POINTS",   RewardSilver = 200, RewardGold = 25,  RewardTickets = 2,  IsActive = true },
-                new () { BagNumber = 9,  Name = "Diamond Chest I",         RequiredReputation = 250, RewardType = "POINTS",   RewardSilver = 250, RewardGold = 30,  RewardTickets = 2,  IsActive = true },
-                new () { BagNumber = 10, Name = "Diamond Chest II",        RequiredReputation = 275, RewardType = "POINTS",   RewardSilver = 300, RewardGold = 40,  RewardTickets = 3,  IsActive = true },
-                new () { BagNumber = 11, Name = "Diamond Chest III",       RequiredReputation = 300, RewardType = "POINTS",   RewardSilver = 350, RewardGold = 50,  RewardTickets = 3,  IsActive = true },
-                new () { BagNumber = 12, Name = "Master Chest I",          RequiredReputation = 350, RewardType = "POINTS",   RewardSilver = 400, RewardGold = 75,  RewardTickets = 4,  IsActive = true },
-                new () { BagNumber = 13, Name = "Master Chest II",         RequiredReputation = 400, RewardType = "POINTS",   RewardSilver = 500, RewardGold = 100, RewardTickets = 5,  IsActive = true },
-                new () { BagNumber = 14, Name = "Treasure of Champions",   RequiredReputation = 500, RewardType = "POINTS",   RewardSilver = 1000, RewardGold = 250, RewardTickets = 10, IsFinalTier = true, IsActive = true }
-            ];
+            if (existingBagsByNumber.TryGetValue(bagConfig.BagNumber, out WarEffortBag? existingBag))
+            {
+                existingBag.Name = bagConfig.Name;
+                existingBag.BagGroupID = bagConfig.BagGroupID;
+                existingBag.RequiredReputation = bagConfig.RequiredReputation;
+                existingBag.RewardType = bagConfig.RewardType;
+                existingBag.RewardSilver = bagConfig.RewardSilver;
+                existingBag.RewardGold = bagConfig.RewardGold;
+                existingBag.RewardTickets = bagConfig.RewardTickets;
+                existingBag.RewardProductCode = bagConfig.RewardProductCode;
+                existingBag.RewardProductName = bagConfig.RewardProductName;
+                existingBag.RewardProductType = bagConfig.RewardProductType;
+                existingBag.RewardIconPath = bagConfig.RewardIconPath;
+                existingBag.IsFinalTier = bagConfig.IsFinalTier;
+                existingBag.IsActive = bagConfig.IsActive;
+            }
+            else
+            {
+                WarEffortBag newBag = new ()
+                {
+                    BagNumber = bagConfig.BagNumber,
+                    BagGroupID = bagConfig.BagGroupID,
+                    Name = bagConfig.Name,
+                    RequiredReputation = bagConfig.RequiredReputation,
+                    RewardType = bagConfig.RewardType,
+                    RewardSilver = bagConfig.RewardSilver,
+                    RewardGold = bagConfig.RewardGold,
+                    RewardTickets = bagConfig.RewardTickets,
+                    RewardProductCode = bagConfig.RewardProductCode,
+                    RewardProductName = bagConfig.RewardProductName,
+                    RewardProductType = bagConfig.RewardProductType,
+                    RewardIconPath = bagConfig.RewardIconPath,
+                    IsFinalTier = bagConfig.IsFinalTier,
+                    IsActive = bagConfig.IsActive
+                };
 
-            await MerrickContext.WarEffortBags.AddRangeAsync(defaultBags);
-            Logger.LogInformation("Seeded {BagCount} War Effort Bags", defaultBags.Count);
+                await MerrickContext.WarEffortBags.AddAsync(newBag);
+            }
         }
 
         await MerrickContext.SaveChangesAsync();
@@ -330,7 +238,8 @@ public class QuestService(MerrickContext databaseContext, ILogger<QuestService> 
                     CurrentCount = 0,
                     IsCompleted = false,
                     IsClaimed = false,
-                    ResetAt = nextMidnight
+                    ResetAt = nextMidnight,
+                    Quest = picked
                 };
 
                 await MerrickContext.AccountQuestProgresses.AddAsync(slot0);
@@ -344,6 +253,7 @@ public class QuestService(MerrickContext databaseContext, ILogger<QuestService> 
                 slot0.IsClaimed = false;
                 slot0.ClaimedAt = null;
                 slot0.ResetAt = nextMidnight;
+                slot0.Quest = picked;
             }
         }
 
@@ -368,7 +278,8 @@ public class QuestService(MerrickContext databaseContext, ILogger<QuestService> 
                     CurrentCount = 0,
                     IsCompleted = false,
                     IsClaimed = false,
-                    ResetAt = nextMidnight
+                    ResetAt = nextMidnight,
+                    Quest = picked
                 };
 
                 await MerrickContext.AccountQuestProgresses.AddAsync(slot1);
@@ -382,6 +293,7 @@ public class QuestService(MerrickContext databaseContext, ILogger<QuestService> 
                 slot1.IsClaimed = false;
                 slot1.ClaimedAt = null;
                 slot1.ResetAt = nextMidnight;
+                slot1.Quest = picked;
             }
         }
 
@@ -397,7 +309,7 @@ public class QuestService(MerrickContext databaseContext, ILogger<QuestService> 
     /// <inheritdoc/>
     public async Task<Dictionary<string, object>> BuildCurrentQuestsDictionaryAsync(int accountID)
     {
-        await EnsureWarEffortSeedDataAsync();
+        await EnsureQuestSeedDataAsync();
 
         AccountWarEffort accountWarEffort = await GetOrCreateAccountWarEffortAsync(accountID);
         List<AccountQuestProgress> activeProgresses = await EnsureAccountActiveQuestsAsync(accountID);

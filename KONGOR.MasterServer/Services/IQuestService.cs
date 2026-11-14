@@ -10,7 +10,7 @@ public interface IQuestService
     /// <summary>
     ///     Ensures the default quest catalogue and reward bag tiers are seeded in the database if they are not yet present.
     /// </summary>
-    Task EnsureWarEffortSeedDataAsync();
+    Task EnsureQuestSeedDataAsync();
 
     /// <summary>
     ///     Retrieves or initialises the War Effort cycle record for the specified account, refreshing daily resets if a new day has started.

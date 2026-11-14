@@ -1,4 +1,4 @@
-﻿namespace KONGOR.MasterServer.Configuration;
+namespace KONGOR.MasterServer.Configuration;
 
 public static class JSONConfiguration
 {
@@ -26,8 +26,13 @@ public static class JSONConfiguration
 
     private static readonly string TicketExchangeConfigurationJSON = File.ReadAllText(Path.Combine(BasePath, "Plinko", "TicketExchangeConfiguration.json"));
 
+    private static readonly string QuestConfigurationJSON = File.ReadAllText(Path.Combine(BasePath, "Economy", "QuestConfiguration.json"));
+
     public static readonly EconomyConfiguration EconomyConfiguration = JsonSerializer.Deserialize<EconomyConfiguration>(EconomyConfigurationJSON)
         ?? throw new NullReferenceException("Economy Configuration Is NULL");
+
+    public static readonly QuestConfiguration QuestConfiguration = JsonSerializer.Deserialize<QuestConfiguration>(QuestConfigurationJSON)
+        ?? throw new NullReferenceException("Quest Rewards Configuration Is NULL");
 
     public static readonly MatchmakingConfiguration MatchmakingConfiguration = JsonSerializer.Deserialize<MatchmakingConfiguration>(MatchmakingConfigurationJSON)
         ?? throw new NullReferenceException("Matchmaking Configuration Is NULL");

@@ -385,7 +385,7 @@ public class QuestController(MerrickContext databaseContext, IDatabase distribut
             return Unauthorized(@$"Unrecognised Cookie ""{cookie}""");
         }
 
-        await QuestService.EnsureWarEffortSeedDataAsync();
+        await QuestService.EnsureQuestSeedDataAsync();
 
         List<WarEffortBag> bags = await MerrickContext.WarEffortBags
             .Where(bag => bag.IsActive)
