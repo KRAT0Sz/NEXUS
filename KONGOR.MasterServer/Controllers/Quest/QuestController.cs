@@ -5,7 +5,6 @@ using System.Text;
 using Quest = MERRICK.DatabaseContext.Entities.Economy.Quest;
 
 [ApiController]
-[Consumes("application/x-www-form-urlencoded")]
 public class QuestController(MerrickContext databaseContext, IDatabase distributedCache, IQuestService questService, ILogger<QuestController> logger) : ControllerBase
 {
     private MerrickContext MerrickContext { get; } = databaseContext;
