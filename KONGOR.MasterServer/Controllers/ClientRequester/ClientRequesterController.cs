@@ -3,7 +3,7 @@ namespace KONGOR.MasterServer.Controllers.ClientRequester;
 [ApiController]
 [Route("client_requester.php")]
 [Consumes("application/x-www-form-urlencoded")]
-public partial class ClientRequesterController(MerrickContext databaseContext, IDatabase distributedCache, HeroUsageStatisticsService heroUsageStatisticsService, GlobalLeaderboardService globalLeaderboardService, ILogger<ClientRequesterController> logger) : ControllerBase
+public partial class ClientRequesterController(MerrickContext databaseContext, IDatabase distributedCache, HeroUsageStatisticsService heroUsageStatisticsService, GlobalLeaderboardService globalLeaderboardService, IQuestService questService, ILogger<ClientRequesterController> logger) : ControllerBase
 {
     # region Client Requester Controller Description
     /*
@@ -23,6 +23,7 @@ public partial class ClientRequesterController(MerrickContext databaseContext, I
     private IDatabase DistributedCache { get; } = distributedCache;
     private HeroUsageStatisticsService HeroUsageStatistics { get; } = heroUsageStatisticsService;
     private GlobalLeaderboardService GlobalLeaderboardService { get; } = globalLeaderboardService;
+    private IQuestService QuestService { get; } = questService;
     private ILogger Logger { get; } = logger;
 
     [HttpPost(Name = "Client Requester All-In-One")]
@@ -339,8 +340,9 @@ public partial class ClientRequesterController(MerrickContext databaseContext, I
 
         Dictionary<string, object> response = new ()
         {
-            ["list"] = dailySpecialItems,
-            ["vested_threshold"] = 5
+            ["list"]             = dailySpecialItems,
+            ["vested_threshold"] = 5,
+            ["0"]                = true
         };
 
         return Ok(JsonSerializer.Serialize(response));

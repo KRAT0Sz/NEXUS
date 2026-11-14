@@ -135,13 +135,10 @@ public class MatchStatsResponse
     public int ServerTimestamp { get; init; } = Convert.ToInt32(Math.Min(DateTimeOffset.UtcNow.ToUnixTimeSeconds(), Convert.ToInt64(Int32.MaxValue)));
 
     /// <summary>
-    ///     Used for the quest system, which has been disabled.
-    ///     <br/>
-    ///     While the quest system is disabled, this dictionary contains a single element with a key of "error".
-    ///     The object which is the value of this element has the values of all its properties set to "0".
+    ///     The quest system and reward bags currently assigned to the account.
     /// </summary>
     [PHPProperty("quest_system")]
-    public Dictionary<string, QuestSystem> QuestSystem { get; init; } = new () { { "error", new QuestSystem() } };
+    public Dictionary<string, object> QuestSystem { get; init; } = [];
 
     /// <summary>
     ///     Unused.

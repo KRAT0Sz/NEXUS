@@ -97,4 +97,142 @@ public class AdministrationController(MerrickContext databaseContext, ILogger<Ad
 
         return Ok(new BroadcastSystemMessageResultDTO(accountIDs.Count));
     }
+
+    [HttpPost("Account/Rename", Name = "Rename Account")]
+    [Authorize(Policy = UserRoles.RolesWithElevatedPrivileges)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> RenameAccount([FromBody] RenameAccountDTO payload)
+    {
+        Account? account = await MerrickContext.Accounts
+            .SingleOrDefaultAsync(candidate => candidate.Name.Equals(payload.AccountName));
+
+        if (account is null)
+        {
+            return NotFound($@"Account ""{payload.AccountName}"" Was Not Found");
+        }
+
+        string trimmedNewName = payload.NewAccountName.Trim();
+
+        if (string.IsNullOrWhiteSpace(trimmedNewName) || trimmedNewName.Length > 15)
+        {
+            return BadRequest("New account name must be between 1 and 15 characters");
+        }
+
+        bool nameExists = await MerrickContext.Accounts.AnyAsync(candidate => candidate.Name.Equals(trimmedNewName));
+
+        if (nameExists)
+        {
+            return Conflict($@"Account With Name ""{trimmedNewName}"" Already Exists");
+        }
+
+        string oldName = account.Name;
+        account.Name = trimmedNewName;
+
+        StaffMemberAction action = new ()
+        {
+            SourceID = Guid.Empty,
+            TargetID = trimmedNewName,
+            Action = StaffMemberActionType.RenameAccount,
+            Details = $"Renamed account from {oldName} to {trimmedNewName}",
+            Timestamp = DateTimeOffset.UtcNow
+        };
+
+        await MerrickContext.StaffMemberActions.AddAsync(action);
+        await MerrickContext.SaveChangesAsync();
+
+        Logger.LogInformation(@"Renamed Account ""{OldName}"" To ""{NewName}""", oldName, trimmedNewName);
+
+        return Ok(new { Message = $"Account successfully renamed from {oldName} to {trimmedNewName}" });
+    }
+
+    [HttpGet("Account/{accountName}/Upgrades", Name = "Get Account Upgrades")]
+    [Authorize(Policy = UserRoles.RolesWithElevatedPrivileges)]
+    [ProducesResponseType(typeof(List<string>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetAccountUpgrades(string accountName)
+    {
+        Account? account = await MerrickContext.Accounts
+            .Include(candidate => candidate.User)
+            .SingleOrDefaultAsync(candidate => candidate.Name.Equals(accountName));
+
+        if (account is null)
+        {
+            return NotFound($@"Account ""{accountName}"" Was Not Found");
+        }
+
+        return Ok(account.User.OwnedStoreItems);
+    }
+
+    [HttpPost("Upgrade/Grant", Name = "Grant Account Upgrade")]
+    [Authorize(Policy = UserRoles.RolesWithElevatedPrivileges)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GrantUpgrade([FromBody] AccountUpgradeDTO payload)
+    {
+        Account? account = await MerrickContext.Accounts
+            .Include(candidate => candidate.User)
+            .SingleOrDefaultAsync(candidate => candidate.Name.Equals(payload.AccountName));
+
+        if (account is null)
+        {
+            return NotFound($@"Account ""{payload.AccountName}"" Was Not Found");
+        }
+
+        string code = payload.UpgradeCode.Trim();
+
+        if (account.User.OwnedStoreItems.Contains(code).Equals(false))
+        {
+            account.User.OwnedStoreItems.Add(code);
+
+            StaffMemberAction action = new ()
+            {
+                SourceID = Guid.Empty,
+                TargetID = account.Name,
+                Action = StaffMemberActionType.GrantUpgrade,
+                Details = $"Granted upgrade: {code}",
+                Timestamp = DateTimeOffset.UtcNow
+            };
+
+            await MerrickContext.StaffMemberActions.AddAsync(action);
+            await MerrickContext.SaveChangesAsync();
+        }
+
+        return Ok(new { Message = $"Upgrade {code} granted to {account.Name}" });
+    }
+
+    [HttpPost("Upgrade/Revoke", Name = "Revoke Account Upgrade")]
+    [Authorize(Policy = UserRoles.RolesWithElevatedPrivileges)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> RevokeUpgrade([FromBody] AccountUpgradeDTO payload)
+    {
+        Account? account = await MerrickContext.Accounts
+            .Include(candidate => candidate.User)
+            .SingleOrDefaultAsync(candidate => candidate.Name.Equals(payload.AccountName));
+
+        if (account is null)
+        {
+            return NotFound($@"Account ""{payload.AccountName}"" Was Not Found");
+        }
+
+        string code = payload.UpgradeCode.Trim();
+        account.User.OwnedStoreItems.Remove(code);
+
+        StaffMemberAction action = new ()
+        {
+            SourceID = Guid.Empty,
+            TargetID = account.Name,
+            Action = StaffMemberActionType.RevokeUpgrade,
+            Details = $"Revoked upgrade: {code}",
+            Timestamp = DateTimeOffset.UtcNow
+        };
+
+        await MerrickContext.StaffMemberActions.AddAsync(action);
+        await MerrickContext.SaveChangesAsync();
+
+        return Ok(new { Message = $"Upgrade {code} revoked from {account.Name}" });
+    }
 }

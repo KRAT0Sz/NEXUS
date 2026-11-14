@@ -1,4 +1,4 @@
-﻿namespace MERRICK.DatabaseContext.Services;
+namespace MERRICK.DatabaseContext.Services;
 
 public class DatabaseInitializer(IServiceProvider serviceProvider, ILogger<DatabaseInitializer> logger) : BackgroundService
 {
@@ -41,5 +41,6 @@ public class DatabaseInitializer(IServiceProvider serviceProvider, ILogger<Datab
         await SeedDataHandlers.SeedAccounts(context, cancellationToken, logger);
         await SeedDataHandlers.SeedOperator(context, cancellationToken, logger);
         await SeedDataHandlers.SeedHeroGuides(context, cancellationToken, logger);
+        await SeedDataHandlers.SeedWarEffort(context, cancellationToken, logger);
     }
 }

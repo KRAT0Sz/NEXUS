@@ -5,10 +5,11 @@ namespace ZORGATH.WebPortal.API.Controllers;
 [Consumes("application/json")]
 [EnableRateLimiting(RateLimiterPolicies.Relaxed)]
 [AllowAnonymous]
-public sealed class StatisticsController(MerrickContext databaseContext, ILogger<StatisticsController> logger) : ControllerBase
+public sealed class StatisticsController(MerrickContext databaseContext, ILogger<StatisticsController> logger, IServiceProvider serviceProvider) : ControllerBase
 {
     private MerrickContext MerrickContext { get; } = databaseContext;
     private ILogger Logger { get; } = logger;
+    private IDatabase? DistributedCacheStore { get; } = serviceProvider.GetService<IDatabase>();
 
     [HttpGet("Portal", Name = "Get Server Overview Statistics")]
     [ProducesResponseType(typeof(ServerStatsDTO), StatusCodes.Status200OK)]
@@ -18,8 +19,84 @@ public sealed class StatisticsController(MerrickContext databaseContext, ILogger
         int totalUsers = await MerrickContext.Users.CountAsync();
         int totalClans = await MerrickContext.Clans.CountAsync();
 
-        ServerStatsDTO response = new (totalAccounts, totalUsers, totalClans);
+        int onlinePlayers = 0;
+        int matchesInProgress = 0;
+
+        if (DistributedCacheStore is not null)
+        {
+            try
+            {
+                RedisValue onlinePlayersValue = await DistributedCacheStore.StringGetAsync(CacheConstants.OnlinePlayersCountKey);
+                if (onlinePlayersValue.HasValue && int.TryParse(onlinePlayersValue.ToString(), out int parsedOnline))
+                {
+                    onlinePlayers = parsedOnline;
+                }
+
+                RedisValue matchesValue = await DistributedCacheStore.StringGetAsync(CacheConstants.MatchesInProgressCountKey);
+                if (matchesValue.HasValue && int.TryParse(matchesValue.ToString(), out int parsedMatches))
+                {
+                    matchesInProgress = parsedMatches;
+                }
+                else
+                {
+                    List<MatchServer> matchServers = await DistributedCacheStore.GetMatchServers();
+                    matchesInProgress = matchServers.Count(server => server.Status is ChatProtocol.ServerStatus.SERVER_STATUS_ACTIVE);
+                }
+            }
+            catch (Exception exception)
+            {
+                Logger.LogWarning(exception, "Failed to read live server statistics from distributed cache.");
+            }
+        }
+
+        ServerStatsDTO response = new
+        (
+            TotalPlayers: totalAccounts,
+            TotalAccounts: totalAccounts,
+            TotalUsers: totalUsers,
+            TotalClans: totalClans,
+            OnlinePlayers: onlinePlayers,
+            MatchesInProgress: matchesInProgress
+        );
+
         return Ok(response);
+    }
+
+    [HttpGet("Active", Name = "Get Active Players And Matches")]
+    [ProducesResponseType(typeof(ActiveStatsDTO), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetActiveStats()
+    {
+        int onlinePlayers = 0;
+        int matchesInProgress = 0;
+
+        if (DistributedCacheStore is not null)
+        {
+            try
+            {
+                RedisValue onlinePlayersValue = await DistributedCacheStore.StringGetAsync(CacheConstants.OnlinePlayersCountKey);
+                if (onlinePlayersValue.HasValue && int.TryParse(onlinePlayersValue.ToString(), out int parsedOnline))
+                {
+                    onlinePlayers = parsedOnline;
+                }
+
+                RedisValue matchesValue = await DistributedCacheStore.StringGetAsync(CacheConstants.MatchesInProgressCountKey);
+                if (matchesValue.HasValue && int.TryParse(matchesValue.ToString(), out int parsedMatches))
+                {
+                    matchesInProgress = parsedMatches;
+                }
+                else
+                {
+                    List<MatchServer> matchServers = await DistributedCacheStore.GetMatchServers();
+                    matchesInProgress = matchServers.Count(server => server.Status is ChatProtocol.ServerStatus.SERVER_STATUS_ACTIVE);
+                }
+            }
+            catch (Exception exception)
+            {
+                Logger.LogWarning(exception, "Failed to read active server statistics from distributed cache.");
+            }
+        }
+
+        return Ok(new ActiveStatsDTO(onlinePlayers, matchesInProgress));
     }
 
     [HttpGet("Locations/Live", Name = "Get Live Active Locations")]

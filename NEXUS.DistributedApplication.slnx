@@ -5,7 +5,6 @@
     <Project Path="ASPIRE.Tests.KONGOR.MasterServer/ASPIRE.Tests.KONGOR.MasterServer.csproj" />
     <Project Path="ASPIRE.Tests.TRANSMUTANSTEIN.ChatServer/ASPIRE.Tests.TRANSMUTANSTEIN.ChatServer.csproj" />
     <Project Path="ASPIRE.Tests.ZORGATH.WebPortal.API/ASPIRE.Tests.ZORGATH.WebPortal.API.csproj" />
-    <Project Path="DAWNBRINGER.WebPortal.UI/DAWNBRINGER.WebPortal.UI.csproj" />
     <Project Path="KONGOR.MasterServer/KONGOR.MasterServer.csproj" />
     <Project Path="MERRICK.DatabaseContext/MERRICK.DatabaseContext.csproj" />
     <Project Path="TRANSMUTANSTEIN.ChatServer/TRANSMUTANSTEIN.ChatServer.csproj" />

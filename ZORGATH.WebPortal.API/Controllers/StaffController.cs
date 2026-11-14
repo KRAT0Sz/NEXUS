@@ -53,129 +53,6 @@ public sealed class StaffController(MerrickContext databaseContext, ILogger<Staf
         return Ok(new { Message = $"User {user.EmailAddress} promoted to {payload.Role}" });
     }
 
-    [HttpPost("Hardware/ResetHWID", Name = "Reset Account HWID")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> RemoveAccountHWID([FromBody] string accountName)
-    {
-        Account? account = await MerrickContext.Accounts
-            .SingleOrDefaultAsync(candidate => candidate.Name.Equals(accountName));
-
-        if (account is null)
-        {
-            return NotFound($@"Account ""{accountName}"" Was Not Found");
-        }
-
-        account.SystemInformationHashCollection.Clear();
-        account.SystemInformationCollection.Clear();
-
-        StaffMemberAction action = new ()
-        {
-            SourceID = Guid.Empty,
-            TargetID = account.Name,
-            Action = StaffMemberActionType.RemoveHWID,
-            Details = "Cleared system information and hardware hashes",
-            Timestamp = DateTimeOffset.UtcNow
-        };
-
-        await MerrickContext.StaffMemberActions.AddAsync(action);
-        await MerrickContext.SaveChangesAsync();
-
-        Logger.LogInformation(@"Hardware Hashes Reset For Account ""{AccountName}""", accountName);
-
-        return Ok(new { Message = $"Hardware hashes cleared for account {accountName}" });
-    }
-
-    [HttpPost("Hardware/ResetNetwork", Name = "Reset Account IP And MAC")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> RemoveAccountNetwork([FromBody] string accountName)
-    {
-        Account? account = await MerrickContext.Accounts
-            .SingleOrDefaultAsync(candidate => candidate.Name.Equals(accountName));
-
-        if (account is null)
-        {
-            return NotFound($@"Account ""{accountName}"" Was Not Found");
-        }
-
-        account.IPAddressCollection.Clear();
-        account.MACAddressCollection.Clear();
-
-        StaffMemberAction action = new ()
-        {
-            SourceID = Guid.Empty,
-            TargetID = account.Name,
-            Action = StaffMemberActionType.RemoveIP,
-            Details = "Cleared IP and MAC address history",
-            Timestamp = DateTimeOffset.UtcNow
-        };
-
-        await MerrickContext.StaffMemberActions.AddAsync(action);
-        await MerrickContext.SaveChangesAsync();
-
-        Logger.LogInformation(@"Network Information Reset For Account ""{AccountName}""", accountName);
-
-        return Ok(new { Message = $"Network history cleared for account {accountName}" });
-    }
-
-    [HttpGet("Collisions/{accountName}", Name = "Detect Account Collisions")]
-    [ProducesResponseType(typeof(List<AccountCollisionDTO>), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> DetectAccountCollisions(string accountName)
-    {
-        Account? targetAccount = await MerrickContext.Accounts
-            .Include(account => account.User)
-            .SingleOrDefaultAsync(candidate => candidate.Name.Equals(accountName));
-
-        if (targetAccount is null)
-        {
-            return NotFound($@"Account ""{accountName}"" Was Not Found");
-        }
-
-        List<Account> allAccounts = await MerrickContext.Accounts
-            .Include(account => account.User)
-            .Where(account => account.Name != accountName)
-            .ToListAsync();
-
-        List<AccountCollisionDTO> collisions = [];
-
-        // Match By IP Address
-        List<string> ipMatches = allAccounts
-            .Where(other => other.IPAddressCollection.Intersect(targetAccount.IPAddressCollection).Any())
-            .Select(other => other.Name)
-            .ToList();
-
-        if (ipMatches.Count > 0)
-        {
-            collisions.Add(new AccountCollisionDTO(accountName, ipMatches, "Shared IP Address"));
-        }
-
-        // Match By MAC Address
-        List<string> macMatches = allAccounts
-            .Where(other => other.MACAddressCollection.Intersect(targetAccount.MACAddressCollection).Any())
-            .Select(other => other.Name)
-            .ToList();
-
-        if (macMatches.Count > 0)
-        {
-            collisions.Add(new AccountCollisionDTO(accountName, macMatches, "Shared MAC Address"));
-        }
-
-        // Match By Hardware Hash
-        List<string> hwMatches = allAccounts
-            .Where(other => other.SystemInformationHashCollection.Intersect(targetAccount.SystemInformationHashCollection).Any())
-            .Select(other => other.Name)
-            .ToList();
-
-        if (hwMatches.Count > 0)
-        {
-            collisions.Add(new AccountCollisionDTO(accountName, hwMatches, "Shared Hardware Specification Hash"));
-        }
-
-        return Ok(collisions);
-    }
-
     [HttpPost("Currency/Issue", Name = "Issue Currency To User")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -245,6 +122,219 @@ public sealed class StaffController(MerrickContext databaseContext, ILogger<Staf
         )).ToList();
 
         return Ok(response);
+    }
+
+    [HttpGet("Account/{accountName}/Type", Name = "Get Account Type")]
+    [ProducesResponseType(typeof(AccountTypeResponseDTO), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetAccountType(string accountName)
+    {
+        Account? account = await MerrickContext.Accounts
+            .SingleOrDefaultAsync(candidate => candidate.Name.Equals(accountName));
+
+        if (account is null)
+        {
+            return NotFound($@"Account ""{accountName}"" Was Not Found");
+        }
+
+        return Ok(new AccountTypeResponseDTO(account.Name, account.Type.ToString(), (int)account.Type));
+    }
+
+    [HttpPost("Account/Enable", Name = "Enable Account")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> EnableAccount([FromBody] AccountActionDTO payload)
+    {
+        Account? account = await MerrickContext.Accounts
+            .SingleOrDefaultAsync(candidate => candidate.Name.Equals(payload.AccountName));
+
+        if (account is null)
+        {
+            return NotFound($@"Account ""{payload.AccountName}"" Was Not Found");
+        }
+
+        account.Type = AccountType.Legacy;
+
+        StaffMemberAction action = new ()
+        {
+            SourceID = Guid.Empty,
+            TargetID = account.Name,
+            Action = StaffMemberActionType.EnableAccount,
+            Details = "Enabled account (restored to Legacy)",
+            Timestamp = DateTimeOffset.UtcNow
+        };
+
+        await MerrickContext.StaffMemberActions.AddAsync(action);
+        await MerrickContext.SaveChangesAsync();
+
+        Logger.LogInformation(@"Account ""{AccountName}"" Enabled", account.Name);
+
+        return Ok(new { Message = $"Account {account.Name} enabled" });
+    }
+
+    [HttpPost("Account/Disable", Name = "Disable Account")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DisableAccount([FromBody] AccountActionDTO payload)
+    {
+        Account? account = await MerrickContext.Accounts
+            .SingleOrDefaultAsync(candidate => candidate.Name.Equals(payload.AccountName));
+
+        if (account is null)
+        {
+            return NotFound($@"Account ""{payload.AccountName}"" Was Not Found");
+        }
+
+        account.Type = AccountType.Disabled;
+
+        StaffMemberAction action = new ()
+        {
+            SourceID = Guid.Empty,
+            TargetID = account.Name,
+            Action = StaffMemberActionType.DisableAccount,
+            Details = "Disabled account",
+            Timestamp = DateTimeOffset.UtcNow
+        };
+
+        await MerrickContext.StaffMemberActions.AddAsync(action);
+        await MerrickContext.SaveChangesAsync();
+
+        Logger.LogInformation(@"Account ""{AccountName}"" Disabled", account.Name);
+
+        return Ok(new { Message = $"Account {account.Name} disabled" });
+    }
+
+    [HttpPost("Account/PromoteToHost", Name = "Promote Account To Host")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> PromoteAccountToHost([FromBody] AccountActionDTO payload)
+    {
+        Account? account = await MerrickContext.Accounts
+            .SingleOrDefaultAsync(candidate => candidate.Name.Equals(payload.AccountName));
+
+        if (account is null)
+        {
+            return NotFound($@"Account ""{payload.AccountName}"" Was Not Found");
+        }
+
+        account.Type = AccountType.ServerHost;
+
+        StaffMemberAction action = new ()
+        {
+            SourceID = Guid.Empty,
+            TargetID = account.Name,
+            Action = "Promote To TMM Host",
+            Details = "Promoted account to ServerHost",
+            Timestamp = DateTimeOffset.UtcNow
+        };
+
+        await MerrickContext.StaffMemberActions.AddAsync(action);
+        await MerrickContext.SaveChangesAsync();
+
+        Logger.LogInformation(@"Account ""{AccountName}"" Promoted To TMM Host", account.Name);
+
+        return Ok(new { Message = $"Account {account.Name} promoted to ServerHost" });
+    }
+
+    [HttpPost("Lookup", Name = "Lookup Accounts And Users")]
+    [ProducesResponseType(typeof(List<ConnectedAccountUserResultDTO>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> LookupAccountsAndUsers([FromBody] LookupQueryDTO payload)
+    {
+        string query = payload.Query.Trim();
+
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return BadRequest("Lookup query cannot be empty");
+        }
+
+        List<Account> matchedAccounts = await MerrickContext.Accounts
+            .Include(candidate => candidate.User)
+                .ThenInclude(u => u.Role)
+            .Include(candidate => candidate.Clan)
+            .Where(candidate => EF.Functions.Like(candidate.Name, $"%{query}%"))
+            .Take(25)
+            .ToListAsync();
+
+        List<User> matchedUsers = await MerrickContext.Users
+            .Include(candidate => candidate.Accounts)
+            .Include(candidate => candidate.Role)
+            .Where(candidate => EF.Functions.Like(candidate.EmailAddress, $"%{query}%"))
+            .Take(25)
+            .ToListAsync();
+
+        List<ConnectedAccountUserResultDTO> results = [];
+
+        foreach (Account acc in matchedAccounts)
+        {
+            results.Add(new ConnectedAccountUserResultDTO
+            (
+                "account",
+                acc.Name,
+                acc.IsMain,
+                acc.Type.ToString(),
+                acc.NameWithClanTag,
+                MaskEmail(acc.User.EmailAddress),
+                acc.User.Role?.Name ?? "USER"
+            ));
+        }
+
+        foreach (User user in matchedUsers)
+        {
+            foreach (Account acc in user.Accounts)
+            {
+                if (results.Any(existing => existing.Name == acc.Name))
+                {
+                    continue;
+                }
+
+                results.Add(new ConnectedAccountUserResultDTO
+                (
+                    "user",
+                    acc.Name,
+                    acc.IsMain,
+                    acc.Type.ToString(),
+                    acc.NameWithClanTag,
+                    MaskEmail(user.EmailAddress),
+                    user.Role?.Name ?? "USER"
+                ));
+            }
+        }
+
+        return Ok(results);
+    }
+
+    [HttpGet("Roster", Name = "Get Staff Roster")]
+    [ProducesResponseType(typeof(List<StaffRosterMemberDTO>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetStaffRoster()
+    {
+        List<User> staffUsers = await MerrickContext.Users
+            .Include(user => user.Role)
+            .Include(user => user.Accounts)
+            .Where(user => user.Role.Name != UserRoles.User)
+            .ToListAsync();
+
+        List<StaffRosterMemberDTO> roster = staffUsers.Select(user => new StaffRosterMemberDTO
+        (
+            user.ID,
+            user.Accounts.FirstOrDefault(acc => acc.IsMain)?.Name ?? user.EmailAddress,
+            user.EmailAddress,
+            user.Role.Name
+        )).ToList();
+
+        return Ok(roster);
+    }
+
+    private static string MaskEmail(string email)
+    {
+        int atIndex = email.IndexOf('@');
+
+        if (atIndex <= 1)
+        {
+            return "***" + (atIndex >= 0 ? email[atIndex..] : string.Empty);
+        }
+
+        return email[0] + "***" + email[atIndex..];
     }
 }
 

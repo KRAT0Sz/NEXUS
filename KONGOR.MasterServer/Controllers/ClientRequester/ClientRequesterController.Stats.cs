@@ -892,6 +892,7 @@ public partial class ClientRequesterController
             MatchPlayerStatistics = new Dictionary<int, Dictionary<int, MatchPlayerStatisticsEntry>> { { matchStatistics.MatchID, matchPlayerStatistics } },
             MatchPlayerInventories = new Dictionary<int, Dictionary<int, MatchPlayerInventory>> { { matchStatistics.MatchID, matchPlayerInventories } },
             MatchMastery = matchMastery,
+            QuestSystem = await QuestService.BuildCurrentQuestsDictionaryAsync(account.ID),
             OwnedStoreItems = account.User.OwnedStoreItems,
             OwnedStoreItemsData = SetOwnedStoreItemsData(account),
             SelectedStoreItems = account.SelectedStoreItems,

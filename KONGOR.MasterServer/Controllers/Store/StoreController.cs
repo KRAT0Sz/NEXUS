@@ -15,6 +15,7 @@ public class StoreController(MerrickContext databaseContext, IDatabase distribut
     private const int SuperTauntStoreItemID = 1792;
 
     private static StoreItemsConfiguration StoreItems => JSONConfiguration.StoreItemsConfiguration;
+    private static DailySpecialsConfiguration DailySpecials => JSONConfiguration.DailySpecialsConfiguration;
 
     [HttpPost(Name = "Store Requester")]
     public async Task<IActionResult> StoreRequester()
@@ -22,7 +23,7 @@ public class StoreController(MerrickContext databaseContext, IDatabase distribut
         string? cookie = Request.Form["cookie"];
 
         if (cookie is null)
-            return BadRequest(@"Missing Value For Form Parameter ""cookie""");
+            return Ok(PhpSerialization.Serialize(CreateErrorResponse((int) StoreErrorCode.STORE_SESSION_ERROR)));
 
         (bool isValid, string? accountName) = await DistributedCache.ValidateAccountSessionCookie(cookie);
 
@@ -36,11 +37,8 @@ public class StoreController(MerrickContext databaseContext, IDatabase distribut
 
         string? requestCodeString = Request.Form["request_code"];
 
-        if (requestCodeString is null)
-            return BadRequest(@"Missing Value For Form Parameter ""request_code""");
-
-        if (Enum.TryParse(requestCodeString, out StoreRequestCode requestCode).Equals(false))
-            return BadRequest(@"Invalid Value For Form Parameter ""request_code""");
+        if (requestCodeString is null || Enum.TryParse(requestCodeString, out StoreRequestCode requestCode).Equals(false))
+            return Ok(PhpSerialization.Serialize(CreateErrorResponse((int) StoreErrorCode.STORE_INVALID_REQUEST_ERROR)));
 
         Account account = await MerrickContext.Accounts
             .Include(queriedAccount => queriedAccount.User)
@@ -62,7 +60,7 @@ public class StoreController(MerrickContext databaseContext, IDatabase distribut
                 return ViewStore(account);
 
             case StoreRequestCode.LIST_VAULT_ITEMS_REQUEST:
-                return ViewVault(account);
+                return await ViewVault(account);
 
             case StoreRequestCode.ATTEMPT_PURCHASE_PRODUCT_REQUEST:
                 return await PurchaseProduct(account);
@@ -92,24 +90,18 @@ public class StoreController(MerrickContext databaseContext, IDatabase distribut
     {
         string? categoryIDString = Request.Form["category_id"];
 
-        if (categoryIDString is null)
-            return BadRequest(@"Missing Value For Form Parameter ""category_id""");
-
-        if (int.TryParse(categoryIDString, out int categoryID).Equals(false))
-            return BadRequest(@"Invalid Value For Form Parameter ""category_id""");
+        if (categoryIDString is null || int.TryParse(categoryIDString, out int categoryID).Equals(false))
+            return Ok(PhpSerialization.Serialize(CreateErrorResponse((int) StoreErrorCode.STORE_INVALID_REQUEST_ERROR)));
 
         string? pageString = Request.Form["page"];
 
-        if (pageString is null)
-            return BadRequest(@"Missing Value For Form Parameter ""page""");
-
-        if (int.TryParse(pageString, out int currentPage).Equals(false))
-            return BadRequest(@"Invalid Value For Form Parameter ""page""");
+        if (pageString is null || int.TryParse(pageString, out int currentPage).Equals(false))
+            return Ok(PhpSerialization.Serialize(CreateErrorResponse((int) StoreErrorCode.STORE_INVALID_REQUEST_ERROR)));
 
         string? hostTime = Request.Form["hostTime"];
 
         if (hostTime is null)
-            return BadRequest(@"Missing Value For Form Parameter ""hostTime""");
+            return Ok(PhpSerialization.Serialize(CreateErrorResponse((int) StoreErrorCode.STORE_INVALID_REQUEST_ERROR)));
 
         Dictionary<string, object> response = new ();
 
@@ -128,12 +120,20 @@ public class StoreController(MerrickContext databaseContext, IDatabase distribut
     /// <summary>
     ///     Generates a response for a request to view the vault (owned items).
     /// </summary>
-    private IActionResult ViewVault(Account account)
+    private async Task<IActionResult> ViewVault(Account account)
     {
         string? hostTime = Request.Form["hostTime"];
 
         if (hostTime is null)
-            return BadRequest(@"Missing Value For Form Parameter ""hostTime""");
+            return Ok(PhpSerialization.Serialize(CreateErrorResponse((int) StoreErrorCode.STORE_INVALID_REQUEST_ERROR)));
+
+        if (account.User.OwnedStoreItems.Contains("ai.custom_icon"))
+        {
+            int existingIconSlots = account.User.OwnedStoreItems.Count(item => item.StartsWith("ai.custom_icon:", StringComparison.Ordinal));
+            account.User.OwnedStoreItems.Remove("ai.custom_icon");
+            account.User.OwnedStoreItems.Add($"ai.custom_icon:{existingIconSlots + 1}");
+            await MerrickContext.SaveChangesAsync();
+        }
 
         Dictionary<string, object> response = new ();
 
@@ -179,41 +179,35 @@ public class StoreController(MerrickContext databaseContext, IDatabase distribut
     {
         string? productIDString = Request.Form["product_id"];
 
-        if (productIDString is null)
-            return BadRequest(@"Missing Value For Form Parameter ""product_id""");
-
-        if (int.TryParse(productIDString, out int productID).Equals(false))
-            return BadRequest(@"Invalid Value For Form Parameter ""product_id""");
+        if (productIDString is null || int.TryParse(productIDString, out int productID).Equals(false))
+            return Ok(PhpSerialization.Serialize(CreateErrorResponse((int) StoreErrorCode.STORE_PURCHASE_SPECIFY_ITEM_ERROR)));
 
         string? currency = Request.Form["currency"];
 
         if (currency is null)
-            return BadRequest(@"Missing Value For Form Parameter ""currency""");
+            return Ok(PhpSerialization.Serialize(CreateErrorResponse((int) StoreErrorCode.STORE_INVALID_REQUEST_ERROR)));
 
         string? categoryIDString = Request.Form["category_id"];
 
         if (categoryIDString is null)
-            return BadRequest(@"Missing Value For Form Parameter ""category_id""");
+            return Ok(PhpSerialization.Serialize(CreateErrorResponse((int) StoreErrorCode.STORE_INVALID_REQUEST_ERROR)));
 
         // The Match Stats Screen Signals A Post-Match Boost Purchase With A "MASTERY" Category; The Purchase Only Adds The Consumable, Which The Client Then Applies With A Follow-Up "boost_match_mastery" Request
         if (categoryIDString.StartsWith("MASTERY", StringComparison.Ordinal) && productID == MasteryBoost.Regular.ProductCode)
             return await PurchaseMasteryBoostFromMatchStatsScreen(account);
 
         if (int.TryParse(categoryIDString, out int categoryID).Equals(false))
-            return BadRequest(@"Invalid Value For Form Parameter ""category_id""");
+            return Ok(PhpSerialization.Serialize(CreateErrorResponse((int) StoreErrorCode.STORE_INVALID_REQUEST_ERROR)));
 
         string? pageString = Request.Form["page"];
 
-        if (pageString is null)
-            return BadRequest(@"Missing Value For Form Parameter ""page""");
-
-        if (int.TryParse(pageString, out int currentPage).Equals(false))
-            return BadRequest(@"Invalid Value For Form Parameter ""page""");
+        if (pageString is null || int.TryParse(pageString, out int currentPage).Equals(false))
+            return Ok(PhpSerialization.Serialize(CreateErrorResponse((int) StoreErrorCode.STORE_INVALID_REQUEST_ERROR)));
 
         string? hostTime = Request.Form["hostTime"];
 
         if (hostTime is null)
-            return BadRequest(@"Missing Value For Form Parameter ""hostTime""");
+            return Ok(PhpSerialization.Serialize(CreateErrorResponse((int) StoreErrorCode.STORE_INVALID_REQUEST_ERROR)));
 
         StoreItem? storeItem = StoreItems.GetByID(productID);
 
@@ -242,25 +236,19 @@ public class StoreController(MerrickContext databaseContext, IDatabase distribut
     private async Task<IActionResult> PurchaseProductInMatchLobby(Account account)
     {
         string? heroName = Request.Form["hero_name"];
-
-        if (heroName is null)
-            return BadRequest(@"Missing Value For Form Parameter ""hero_name""");
-
         string? avatarCode = Request.Form["avatar_code"];
-
-        if (avatarCode is null)
-            return BadRequest(@"Missing Value For Form Parameter ""avatar_code""");
-
         string? currency = Request.Form["currency"];
 
-        if (currency is null)
-            return BadRequest(@"Missing Value For Form Parameter ""currency""");
+        if (heroName is null || avatarCode is null || currency is null)
+            return Ok(PhpSerialization.Serialize(CreateErrorResponse((int) StoreErrorCode.STORE_INVALID_REQUEST_ERROR)));
 
         string itemCode = heroName + "." + avatarCode;
 
         StoreItem? storeItem = StoreItems.GetByCode(itemCode);
 
-        (Dictionary<string, object> response, bool success) = ExecutePurchase(account, storeItem, currency);
+        int.TryParse(Request.Form["discount"], out int discountCode);
+
+        (Dictionary<string, object> response, bool success) = ExecutePurchase(account, storeItem, currency, discountCode);
 
         if (success)
             await MerrickContext.SaveChangesAsync();
@@ -283,15 +271,17 @@ public class StoreController(MerrickContext databaseContext, IDatabase distribut
         string? hostTime = Request.Form["hostTime"];
 
         if (hostTime is null)
-            return BadRequest(@"Missing Value For Form Parameter ""hostTime""");
+            return Ok(PhpSerialization.Serialize(CreateErrorResponse((int) StoreErrorCode.STORE_INVALID_REQUEST_ERROR)));
 
         Dictionary<string, object> response = new ();
 
         PopulateSelectedUpgrades(account, response);
 
-        response["responseCode"] = (int) StoreResponseCode.UPDATE_SELECTED_RESPONSE;
-        response["popupCode"] = -1;
+        response["responseCode"]    = (int) StoreResponseCode.UPDATE_SELECTED_RESPONSE;
+        response["popupCode"]       = -1;
         response["requestHostTime"] = hostTime;
+        response["totalPoints"]     = account.User.GoldCoins;
+        response["totalMMPoints"]   = account.User.SilverCoins;
 
         return Ok(PhpSerialization.Serialize(response));
     }
@@ -427,7 +417,8 @@ public class StoreController(MerrickContext databaseContext, IDatabase distribut
             return (response, false);
         }
 
-        if (user.OwnedStoreItems.Contains(storeItem.PrefixedCode))
+        // Custom Account Icons Can Be Purchased Multiple Times To Unlock Additional Upload Slots
+        if (storeItem.PrefixedCode.Equals("ai.custom_icon", StringComparison.Ordinal).Equals(false) && user.OwnedStoreItems.Contains(storeItem.PrefixedCode))
         {
             response["popupCode"] = (int) StorePopupCode.POP_UP_ERROR_MESSAGE;
             response["errorCode"] = (int) StoreErrorCode.STORE_PURCHASE_ALREADY_OWNED;
@@ -444,15 +435,45 @@ public class StoreController(MerrickContext databaseContext, IDatabase distribut
             return (response, false);
         }
 
-        // Apply An Owned Mastery Coupon When One Is Specified And Is Valid For The Product Being Purchased
-        MasteryCoupon? appliedCoupon = MasteryCouponHelper.ResolveApplicableCoupon(user, discountCode, storeItem);
+        // Check If A Daily Special Discount Applies First (Daily Specials Take Precedence Over Mastery Coupons)
+        DailySpecialEntry? dailySpecial = DailySpecials.Specials
+            .SingleOrDefault(special => special.StoreItemID == storeItem.ID);
 
-        // Mastery Coupons Apply A 25% Discount; Math.Floor Matches The Values Displayed By The Client
-        int goldCost   = appliedCoupon is null ? storeItem.GoldCost   : (int) Math.Floor(storeItem.GoldCost   * 0.75);
-        int silverCost = appliedCoupon is null ? storeItem.SilverCost : (int) Math.Floor(storeItem.SilverCost * 0.75);
+        // Apply An Owned Mastery Coupon When One Is Specified And Is Valid For The Product Being Purchased (Only When Not On Daily Special)
+        MasteryCoupon? appliedCoupon = dailySpecial is null
+            ? MasteryCouponHelper.ResolveApplicableCoupon(user, discountCode, storeItem)
+            : null;
+
+        int goldCost;
+        int silverCost;
+
+        if (dailySpecial is not null)
+        {
+            goldCost   = storeItem.GoldCost * (100 - dailySpecial.DiscountPercentageGold) / 100;
+            silverCost = storeItem.SilverCost * (100 - dailySpecial.DiscountPercentageSilver) / 100;
+        }
+        else if (appliedCoupon is not null)
+        {
+            // Mastery Coupons Apply A 25% Discount; Math.Floor Matches The Values Displayed By The Client
+            goldCost   = (int) Math.Floor(storeItem.GoldCost   * 0.75);
+            silverCost = (int) Math.Floor(storeItem.SilverCost * 0.75);
+        }
+        else
+        {
+            goldCost   = storeItem.GoldCost;
+            silverCost = storeItem.SilverCost;
+        }
 
         if (currency is "0")
         {
+            if (goldCost <= 0)
+            {
+                response["popupCode"] = (int) StorePopupCode.POP_UP_ERROR_MESSAGE;
+                response["errorCode"] = (int) StoreErrorCode.STORE_PURCHASE_ITEM_ERROR;
+
+                return (response, false);
+            }
+
             if (user.GoldCoins < goldCost)
             {
                 response["popupCode"] = (int) StorePopupCode.POP_UP_ERROR_MESSAGE;
@@ -466,6 +487,14 @@ public class StoreController(MerrickContext databaseContext, IDatabase distribut
 
         else if (currency is "1")
         {
+            if (silverCost <= 0)
+            {
+                response["popupCode"] = (int) StorePopupCode.POP_UP_ERROR_MESSAGE;
+                response["errorCode"] = (int) StoreErrorCode.STORE_PURCHASE_ITEM_ERROR;
+
+                return (response, false);
+            }
+
             if (user.SilverCoins < silverCost)
             {
                 response["popupCode"] = (int) StorePopupCode.POP_UP_ERROR_MESSAGE;
@@ -485,7 +514,16 @@ public class StoreController(MerrickContext databaseContext, IDatabase distribut
             return (response, false);
         }
 
-        user.OwnedStoreItems.Add(storeItem.PrefixedCode);
+        if (storeItem.PrefixedCode.Equals("ai.custom_icon", StringComparison.Ordinal))
+        {
+            int existingIconSlots = user.OwnedStoreItems.Count(item => item.StartsWith("ai.custom_icon:", StringComparison.Ordinal));
+            string nextSlotCode = $"ai.custom_icon:{existingIconSlots + 1}";
+            user.OwnedStoreItems.Add(nextSlotCode);
+        }
+        else
+        {
+            user.OwnedStoreItems.Add(storeItem.PrefixedCode);
+        }
 
         // Consume The Mastery Coupon Once The Discounted Purchase Has Succeeded
         if (appliedCoupon is not null)
@@ -720,7 +758,7 @@ public class StoreController(MerrickContext databaseContext, IDatabase distribut
                     StoreItems.GetByID(requiredID) is StoreItem requiredItem
                         && user.OwnedStoreItems.Contains(requiredItem.PrefixedCode));
 
-                productEligibility.Add(string.Join("~", item.ID, eligibilityIndex, isEligible ? 1 : 0, item.GoldCost, 0, requiredString));
+                productEligibility.Add(string.Join("~", item.ID, eligibilityIndex, isEligible ? 1 : 0, item.GoldCost, item.SilverCost, requiredString));
             }
 
             eligibilityIndex++;
@@ -771,6 +809,7 @@ public class StoreController(MerrickContext databaseContext, IDatabase distribut
         List<string> productLocalContent = [];
         List<string> productAlreadyOwned = [];
         List<string> productEligibility = [];
+        int eligibilityIndex = 0;
 
         foreach (int itemID in featuredConfiguration.FeaturedItemIDs)
         {
@@ -792,8 +831,10 @@ public class StoreController(MerrickContext databaseContext, IDatabase distribut
 
                 string requiredString = string.Join(";", item.Required);
 
-                productEligibility.Add(string.Join("~", item.ID, item.Required.Length, isEligible ? 1 : 0, item.GoldCost, 0, requiredString));
+                productEligibility.Add(string.Join("~", item.ID, eligibilityIndex, isEligible ? 1 : 0, item.GoldCost, item.SilverCost, requiredString));
             }
+
+            eligibilityIndex++;
         }
 
         List<string> bundleIDs = [];

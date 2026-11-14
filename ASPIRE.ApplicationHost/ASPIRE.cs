@@ -160,6 +160,7 @@ public class ASPIRE
         // Add Web Portal API Project
         IResourceBuilder<ProjectResource> webPortalAPI = builder.AddProject<ZORGATH>("web-portal-api", builder.Environment.IsProduction() ? "ZORGATH.WebPortal.API Production" : "ZORGATH.WebPortal.API Development")
             .WithReference(database, connectionName: "MERRICK").WaitFor(database) // Connect To SQL Server Database And Wait For It To Start
+            .WithReference(distributedCache, connectionName: "DISTRIBUTED-CACHE").WaitFor(distributedCache) // Connect To Distributed Cache And Wait For It To Start
             .WithReference(logServer) // Connect To Structured Log Server
             .WithEnvironment("INFRASTRUCTURE_GATEWAY", gateway);
 
@@ -240,14 +241,12 @@ public class ASPIRE
             smtpPassword.WithDescription("SMTP Password").WithParentRelationship(webPortalAPI);
         }
 
-        // Add Web Portal UI Project
-        # pragma warning disable ASPIREBROWSERLOGS001
-        builder.AddProject<DAWNBRINGER>("web-portal-ui", builder.Environment.IsProduction() ? "DAWNBRINGER.WebPortal.UI Production" : "DAWNBRINGER.WebPortal.UI Development")
+        // Add Web Portal UI Project (SvelteKit)
+        IResourceBuilder<ViteAppResource> webPortalUI = builder.AddViteApp("web-portal-ui", "../DAWNBRINGER.WebPortal.UI")
+            .WithNpm(install: false)
             .WithReference(webPortalAPI).WaitFor(webPortalAPI) // Connect To Web Portal API And Wait For It To Start
-            .WithReference(logServer) // Connect To Structured Log Server
-            .WithEnvironment("INFRASTRUCTURE_GATEWAY", gateway)
-            .WithBrowserLogs(userDataMode: BrowserUserDataMode.Isolated); // Experimental Extension; Surfaces Web Browser Logs In The Aspire Dashboard
-        # pragma warning restore ASPIREBROWSERLOGS001
+            .WithHttpEndpoint(port: 5557, targetPort: 5557, name: "http", isProxied: false)
+            .WithEnvironment("INFRASTRUCTURE_GATEWAY", gateway);
 
         // Start Orchestrating Distributed Application
         builder.Build().Run();

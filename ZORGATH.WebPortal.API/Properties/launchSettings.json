@@ -9,7 +9,8 @@
             "environmentVariables": {
                 "APPLICATION_URL": "https://0.0.0.0:5556",
                 "ASPNETCORE_ENVIRONMENT": "Development",
-                "DOTNET_ENVIRONMENT": "Development"
+                "DOTNET_ENVIRONMENT": "Development",
+                "INFRASTRUCTURE_GATEWAY": "localhost"
             },
             "dotnetRunMessages": true
         },

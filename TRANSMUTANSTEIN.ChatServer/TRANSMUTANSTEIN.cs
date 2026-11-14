@@ -146,6 +146,9 @@ public class TRANSMUTANSTEIN
         // Register The General Chat Channel Compactor That Consolidates The Members Of The General Channels Into As Few Channels As They Need
         builder.Services.AddHostedService<GeneralChatChannelCompactor>();
 
+        // Register Live Server Statistics Publisher Service
+        builder.Services.AddHostedService<LiveStatisticsPublisher>();
+
         // Register Database Context Service
         builder.Services.AddTransient<MerrickContext>();
 
@@ -222,6 +225,15 @@ public class TRANSMUTANSTEIN
 
         // Map Aspire Default Health Check Endpoints
         application.MapDefaultEndpoints();
+
+        // Map Live Server Statistics Endpoint
+        application.MapGet("/stats", () => Results.Ok(new
+        {
+            OnlinePlayers = Context.ClientChatSessions.Count,
+            MatchesInProgress = Context.MatchServerChatSessions.Values.Count(session =>
+                session.Metadata.Status is ChatProtocol.ServerStatus.SERVER_STATUS_ACTIVE
+                || (session.Metadata.MatchID > 0 && session.Metadata.Status is not ChatProtocol.ServerStatus.SERVER_STATUS_IDLE))
+        }));
 
         return application;
     }

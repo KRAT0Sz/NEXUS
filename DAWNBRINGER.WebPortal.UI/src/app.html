@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+		<meta name="color-scheme" content="dark light" />
+		<meta name="description" content="Project KONGOR user portal for account management, downloads, documentation, news, and links to community hubs." />
+		<meta name="theme-color" content="#0d1610" />
+
+		<link rel="icon" href="/favicon.ico" />
+		<link rel="shortcut icon" href="/favicon.ico" />
+
+		<link href="/css/fonts.css" rel="stylesheet" />
+		<link href="/css/portal.common.css" rel="stylesheet" />
+		<link href="/css/portal.dark.css" rel="stylesheet" />
+		<link href="/css/portal.light.css" rel="stylesheet" />
+		<link href="/css/cursor.css" rel="stylesheet" />
+		%sveltekit.head%
+	</head>
+	<body data-sveltekit-preload-data="hover">
+		<canvas id="fluid" aria-hidden="true"></canvas>
+		<div style="display: contents">%sveltekit.body%</div>
+		<script src="/js/cursor.js" defer></script>
+	</body>
+</html>

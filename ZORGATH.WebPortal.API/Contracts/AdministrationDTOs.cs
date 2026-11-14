@@ -12,3 +12,8 @@ public record BroadcastSystemMessageDTO(string Subject, string Body, string? Sub
 ///     The result of a system message broadcast, reporting how many accounts received the message.
 /// </summary>
 public record BroadcastSystemMessageResultDTO(int AccountsMessaged);
+
+public record RenameAccountDTO(string AccountName, string NewAccountName);
+
+public record AccountUpgradeDTO(string AccountName, string UpgradeCode);
+

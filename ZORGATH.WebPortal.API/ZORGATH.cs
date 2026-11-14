@@ -1,4 +1,4 @@
-﻿namespace ZORGATH.WebPortal.API;
+namespace ZORGATH.WebPortal.API;
 
 public class ZORGATH
 {
@@ -43,6 +43,13 @@ public class ZORGATH
             options.AddMerrickInterceptors();
         });
 
+        // Add Distributed Cache If Configured; The Connection String Maps To The "distributed-cache" Resource Defined In ASPIRE.ApplicationHost
+        if (builder.Configuration.GetConnectionString("DISTRIBUTED-CACHE") is not null)
+        {
+            builder.AddRedisClient("DISTRIBUTED-CACHE");
+            builder.Services.AddSingleton<IDatabase>(serviceProvider => serviceProvider.GetRequiredService<IConnectionMultiplexer>().GetDatabase());
+        }
+
         // Add Memory Cache Service
         builder.Services.AddMemoryCache();
 
@@ -85,7 +92,7 @@ public class ZORGATH
 
         // Set CORS Origins
         string[] corsOrigins = builder.Environment.IsDevelopment()
-            ? [ "https://localhost:5553",      "https://localhost:5554",  "http://localhost:5555", "https://localhost:5556",        "https://localhost:5557"    ]
+            ? [ "https://localhost:5553",      "https://localhost:5554",  "http://localhost:5555", "https://localhost:5556",        "https://localhost:5557", "http://localhost:5557" ]
             : [ "https://database.kongor.net", "https://chat.kongor.net", "http://api.kongor.net", "https://portal.api.kongor.net", "https://portal.kongor.net" ];
 
         // Add CORS Policy To Allow Cross-Origin Requests
@@ -141,8 +148,13 @@ public class ZORGATH
             .AddPolicy(UserRoles.AllRoles, policy => policy.RequireClaim(Claims.UserRole, UserRoles.AllRoles.Split(',')))
             .AddPolicy(UserRoles.RolesWithElevatedPrivileges, policy => policy.RequireClaim(Claims.UserRole, UserRoles.RolesWithElevatedPrivileges.Split(',')));
 
-        // Enable MVC Controllers
-        builder.Services.AddControllers();
+        // Enable MVC Controllers Scoped Exclusively To ZORGATH Assembly
+        builder.Services.AddControllers()
+            .ConfigureApplicationPartManager(manager =>
+            {
+                manager.ApplicationParts.Clear();
+                manager.ApplicationParts.Add(new Microsoft.AspNetCore.Mvc.ApplicationParts.AssemblyPart(typeof(ZORGATH).Assembly));
+            });
 
         // Add Comprehensive Error Response Detail In Development Environment
         if (builder.Environment.IsDevelopment())
@@ -213,7 +225,7 @@ public class ZORGATH
         // Configure Forwarded Headers For Reverse Proxy Support
         builder.Services.Configure<ForwardedHeadersOptions>(options =>
         {
-            string proxy = Environment.GetEnvironmentVariable("INFRASTRUCTURE_GATEWAY") ?? throw new NullReferenceException("Infrastructure Gateway Is NULL");
+            string proxy = Environment.GetEnvironmentVariable("INFRASTRUCTURE_GATEWAY") ?? "localhost";
 
             options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost;
 

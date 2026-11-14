@@ -1,4 +1,4 @@
-﻿namespace MERRICK.DatabaseContext;
+namespace MERRICK.DatabaseContext;
 
 /// <summary>
 ///     My name is Merrick, and I manage the store ... the data store.
@@ -34,7 +34,11 @@ public class MERRICK
             // Suppress Warning Regarding Enabled Sensitive Data Logging, Since It Is Only Enabled In The Development Environment
             // https://github.com/dotnet/efcore/blob/main/src/EFCore/Properties/CoreStrings.resx (LogSensitiveDataLoggingEnabled)
             options.EnableSensitiveDataLogging(builder.Environment.IsDevelopment())
-                .ConfigureWarnings(warnings => warnings.Log((Id: CoreEventId.SensitiveDataLoggingEnabledWarning, Level: LogLevel.Trace)));
+                .ConfigureWarnings(warnings =>
+                {
+                    warnings.Log((Id: CoreEventId.SensitiveDataLoggingEnabledWarning, Level: LogLevel.Trace));
+                    warnings.Ignore(RelationalEventId.PendingModelChangesWarning);
+                });
 
             // Enable Thread Safety Checks For Entity Framework
             options.EnableThreadSafetyChecks();
@@ -58,7 +62,7 @@ public class MERRICK
         // Configure Forwarded Headers For Reverse Proxy Support
         builder.Services.Configure<ForwardedHeadersOptions>(options =>
         {
-            string proxy = Environment.GetEnvironmentVariable("INFRASTRUCTURE_GATEWAY") ?? throw new NullReferenceException("Infrastructure Gateway Is NULL");
+            string proxy = Environment.GetEnvironmentVariable("INFRASTRUCTURE_GATEWAY") ?? "localhost";
 
             options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost;
 

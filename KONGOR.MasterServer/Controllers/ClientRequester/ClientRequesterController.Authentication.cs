@@ -1,4 +1,4 @@
-﻿namespace KONGOR.MasterServer.Controllers.ClientRequester;
+namespace KONGOR.MasterServer.Controllers.ClientRequester;
 
 public partial class ClientRequesterController
 {
@@ -15,9 +15,6 @@ public partial class ClientRequesterController
             return BadRequest(PhpSerialization.Serialize(new SRPAuthenticationFailureResponse(SRPAuthenticationFailureReason.MissingClientPublicEphemeral)));
 
         string? systemInformation = Request.Form["SysInfo"];
-
-        if (systemInformation is null)
-            return BadRequest(PhpSerialization.Serialize(new SRPAuthenticationFailureResponse(SRPAuthenticationFailureReason.MissingSystemInformation)));
 
         // Despite The C# ".Equals" Looking Ordinal, This Translates To A Plain SQL Equality, And SQL Server's Default Collation Is Case-Insensitive, So Any Casing Variant Of A Registered Account Name Matches Here
         // Authentication Therefore Succeeds Regardless Of The Submitted Casing; Any Propagation Beyond This Method Must Use The Canonical "account.Name" Rather Than The User-Supplied "accountName" To Avoid Leaking The Caller's Casing Downstream
@@ -53,7 +50,11 @@ public partial class ClientRequesterController
         };
 
         await DistributedCache.SetSRPAuthenticationSessionData(accountName, data);
-        await DistributedCache.SetSRPAuthenticationSystemInformation(accountName, systemInformation);
+
+        if (systemInformation is not null)
+        {
+            await DistributedCache.SetSRPAuthenticationSystemInformation(accountName, systemInformation);
+        }
 
         return Ok(PhpSerialization.Serialize(new SRPAuthenticationResponseStageOne(data)));
     }
@@ -92,9 +93,6 @@ public partial class ClientRequesterController
 
         string? systemInformationHashes = Request.Form["SysInfo"];
 
-        if (systemInformationHashes is null)
-            return BadRequest(PhpSerialization.Serialize(new SRPAuthenticationFailureResponse(SRPAuthenticationFailureReason.MissingSystemInformation)));
-
         SRPAuthenticationSessionDataStageOne? stageOneData = await DistributedCache.GetSRPAuthenticationSessionData(accountName);
 
         if (stageOneData is null)
@@ -108,14 +106,10 @@ public partial class ClientRequesterController
 
         string? systemInformation = await DistributedCache.GetSRPAuthenticationSystemInformation(accountName);
 
-        if (systemInformation is null)
+        if (systemInformation is not null)
         {
-            Logger.LogError($@"[BUG] Unable To Retrieve Cached System Information For Account Name ""{accountName}""");
-
-            return UnprocessableEntity(PhpSerialization.Serialize(new SRPAuthenticationFailureResponse(SRPAuthenticationFailureReason.MissingSystemInformation)));
+            await DistributedCache.RemoveSRPAuthenticationSystemInformation(accountName);
         }
-
-        await DistributedCache.RemoveSRPAuthenticationSystemInformation(accountName);
 
         SRPAuthenticationSessionDataStageTwo stageTwoData = new (stageOneData, clientProof);
 
@@ -168,30 +162,28 @@ public partial class ClientRequesterController
                   - Windows: "MAC|OS|Processor|Video|RAM" (five pipe-separated data points)
                   - Linux/macOS: "not running on windows" (plain string)
             */
-            bool isNonWindowsClient = systemInformation.Equals("not running on windows", StringComparison.Ordinal);
-
-            if (isNonWindowsClient)
+            if (systemInformation is not null)
             {
-                if (account.SystemInformationCollection.Contains(systemInformation).Equals(false))
-                    account.SystemInformationCollection.Add(systemInformation);
-            }
+                bool isNonWindowsClient = systemInformation.Equals("not running on windows", StringComparison.Ordinal);
 
-            else
-            {
-                string[] systemInformationDataPoints = [.. systemInformation.Split('|', StringSplitOptions.RemoveEmptyEntries)];
-
-                if (systemInformationDataPoints.Length is not 5 /* the expected count of data points */)
+                if (isNonWindowsClient)
                 {
-                    Logger.LogError($@"Account ""{account.NameWithClanTag}"" Has Made A Request To Log In Using Unexpected System Information ""{systemInformation}""");
-
-                    return BadRequest(PhpSerialization.Serialize(new SRPAuthenticationFailureResponse(SRPAuthenticationFailureReason.IncorrectSystemInformationFormat)));
+                    if (account.SystemInformationCollection.Contains(systemInformation).Equals(false))
+                        account.SystemInformationCollection.Add(systemInformation);
                 }
+                else
+                {
+                    string[] systemInformationDataPoints = [.. systemInformation.Split('|', StringSplitOptions.RemoveEmptyEntries)];
 
-                if (account.MACAddressCollection.Contains(systemInformationDataPoints.First()).Equals(false))
-                    account.MACAddressCollection.Add(systemInformationDataPoints.First());
+                    if (systemInformationDataPoints.Length >= 1)
+                    {
+                        if (account.MACAddressCollection.Contains(systemInformationDataPoints.First()).Equals(false))
+                            account.MACAddressCollection.Add(systemInformationDataPoints.First());
 
-                if (account.SystemInformationCollection.Contains(string.Join('|', systemInformationDataPoints.Skip(1))).Equals(false))
-                    account.SystemInformationCollection.Add(string.Join('|', systemInformationDataPoints.Skip(1)));
+                        if (systemInformationDataPoints.Length > 1 && account.SystemInformationCollection.Contains(string.Join('|', systemInformationDataPoints.Skip(1))).Equals(false))
+                            account.SystemInformationCollection.Add(string.Join('|', systemInformationDataPoints.Skip(1)));
+                    }
+                }
             }
 
             /*
@@ -202,17 +194,12 @@ public partial class ClientRequesterController
                   - All Platforms (HWID obtained): "hash|hash|hash|hash|hash" (same HWID hash repeated 5 times, likely a bug)
                   - All Platforms (HWID not obtained): "not obtainable" (plain string)
             */
-            string? systemInformationHash = systemInformationHashes.Split('|', StringSplitOptions.RemoveEmptyEntries).Distinct().SingleOrDefault();
+            string? systemInformationHash = systemInformationHashes?.Split('|', StringSplitOptions.RemoveEmptyEntries).Distinct().SingleOrDefault();
 
-            if (systemInformationHash is null)
+            if (systemInformationHash is not null && account.SystemInformationHashCollection.Contains(systemInformationHash).Equals(false))
             {
-                Logger.LogError($@"Account ""{account.NameWithClanTag}"" Has Made A Request To Log In Using Unexpected System Information Hashes ""{systemInformationHashes}""");
-
-                return BadRequest(PhpSerialization.Serialize(new SRPAuthenticationFailureResponse(SRPAuthenticationFailureReason.IncorrectSystemInformationFormat)));
-            }
-
-            if (account.SystemInformationHashCollection.Contains(systemInformationHash).Equals(false))
                 account.SystemInformationHashCollection.Add(systemInformationHash);
+            }
 
             await MerrickContext.SaveChangesAsync();
         }
@@ -240,6 +227,8 @@ public partial class ClientRequesterController
         };
 
         SRPAuthenticationResponseStageTwo response = SRPAuthenticationHandlers.GenerateStageTwoResponse(parameters, out string cookie);
+
+        response.QuestSystem = await QuestService.BuildCurrentQuestsDictionaryAsync(account.ID);
 
         account.TimestampLastActive = DateTimeOffset.UtcNow;
 

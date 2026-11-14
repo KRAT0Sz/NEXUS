@@ -72,6 +72,9 @@ public class KONGOR
         // Register The Hero Usage Statistics Service Which Aggregates Global Per-Hero Win/Loss Totals For The Hero Usage List
         builder.Services.AddScoped<HeroUsageStatisticsService>();
 
+        // Register The Quest Service For Quests And Reward Bag Progression
+        builder.Services.AddScoped<IQuestService, QuestService>();
+
         // Add Rate Limiting Service To Protect Against Abuse And DoS Attacks
         builder.Services.AddRateLimiter(options =>
         {

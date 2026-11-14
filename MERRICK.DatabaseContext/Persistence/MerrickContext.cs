@@ -19,7 +19,11 @@ public sealed class MerrickContext : DbContext
     public const string EconomySchema = "economy";
 
     public DbSet<Account> Accounts => Set<Account>();
+    public DbSet<AccountCompletedBag> AccountCompletedBags => Set<AccountCompletedBag>();
+    public DbSet<AccountDailyCheckIn> AccountDailyCheckIns => Set<AccountDailyCheckIn>();
+    public DbSet<AccountQuestProgress> AccountQuestProgresses => Set<AccountQuestProgress>();
     public DbSet<AccountStatistics> AccountStatistics => Set<AccountStatistics>();
+    public DbSet<AccountWarEffort> AccountWarEfforts => Set<AccountWarEffort>();
     public DbSet<Clan> Clans => Set<Clan>();
     public DbSet<ConfigurationBackup> ConfigurationBackups => Set<ConfigurationBackup>();
     public DbSet<Coupon> Coupons => Set<Coupon>();
@@ -36,6 +40,7 @@ public sealed class MerrickContext : DbContext
     public DbSet<MatchParticipantStatistics> MatchParticipantStatistics => Set<MatchParticipantStatistics>();
     public DbSet<Message> Messages => Set<Message>();
     public DbSet<NicknameChange> NicknameChanges => Set<NicknameChange>();
+    public DbSet<Quest> Quests => Set<Quest>();
     public DbSet<RedeemableCode> RedeemableCodes => Set<RedeemableCode>();
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<StaffMemberAction> StaffMemberActions => Set<StaffMemberAction>();
@@ -44,6 +49,7 @@ public sealed class MerrickContext : DbContext
     public DbSet<Token> Tokens => Set<Token>();
     public DbSet<UniqueHardware> UniqueHardwares => Set<UniqueHardware>();
     public DbSet<User> Users => Set<User>();
+    public DbSet<WarEffortBag> WarEffortBags => Set<WarEffortBag>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -69,7 +75,11 @@ public sealed class MerrickContext : DbContext
         builder.HasDefaultSchema(DefaultSchema);
 
         builder.Entity<Account>().ToTable("Accounts", CoreSchema);
+        builder.Entity<AccountCompletedBag>().ToTable("AccountCompletedBags", EconomySchema);
+        builder.Entity<AccountDailyCheckIn>().ToTable("AccountDailyCheckIns", EconomySchema);
+        builder.Entity<AccountQuestProgress>().ToTable("AccountQuestProgresses", EconomySchema);
         builder.Entity<AccountStatistics>().ToTable("AccountStatistics", StatisticsSchema);
+        builder.Entity<AccountWarEffort>().ToTable("AccountWarEfforts", EconomySchema);
         builder.Entity<Clan>().ToTable("Clans", CoreSchema);
         builder.Entity<ConfigurationBackup>().ToTable("ConfigurationBackups", MiscellaneousSchema);
         builder.Entity<Coupon>().ToTable("Coupons", EconomySchema);
@@ -86,6 +96,7 @@ public sealed class MerrickContext : DbContext
         builder.Entity<MatchStatistics>().ToTable("MatchStatistics", StatisticsSchema);
         builder.Entity<Message>().ToTable("Messages", CoreSchema);
         builder.Entity<NicknameChange>().ToTable("NicknameChanges", CoreSchema);
+        builder.Entity<Quest>().ToTable("Quests", EconomySchema);
         builder.Entity<RedeemableCode>().ToTable("RedeemableCodes", MiscellaneousSchema);
         builder.Entity<Role>().ToTable("Roles", AuthenticationSchema);
         builder.Entity<StaffMemberAction>().ToTable("StaffMemberActions", AdministrationSchema);
@@ -94,6 +105,7 @@ public sealed class MerrickContext : DbContext
         builder.Entity<Token>().ToTable("Tokens", AuthenticationSchema);
         builder.Entity<UniqueHardware>().ToTable("UniqueHardwares", TelemetrySchema);
         builder.Entity<User>().ToTable("Users", CoreSchema);
+        builder.Entity<WarEffortBag>().ToTable("WarEffortBags", EconomySchema);
     }
 
     private static void ConfigureRoles(EntityTypeBuilder<Role> builder)

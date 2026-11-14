@@ -1,25 +1,25 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk.Web">
 
     <PropertyGroup>
         <OutputType>exe</OutputType>
     </PropertyGroup>
 
     <PropertyGroup>
-        <!-- INFO: The Problem Is That The .NET 11 RC2 SDK Generates "dotnet watch" Browser Assets For Every Web SDK Project And Exposes Them To Referencing Web Projects, Which Then Fail To Build Because Of Duplicate Asset Routes; This Project Serves No Static Web Assets, So Disabling Them Is Safe -->
-        <!-- TODO: Look Into This Again Once .NET 11 Releases, And Remove This Workaround If The SDK No Longer Exposes These Assets To Referencing Projects -->
+        <!-- INFO: The Problem Is That The .NET 11 SDK Generates "dotnet watch" Browser Assets For Every Web SDK Project And Exposes Them To Referencing Web Projects, Which Then Fail To Build Because Those Assets Have No Matching Endpoints; This Project Serves No Static Web Assets, So Disabling Them Is Safe -->
+        <!-- TODO: Look Into This Again On The Next .NET SDK Update, And Remove This Workaround If The SDK No Longer Exposes These Assets To Referencing Projects -->
         <StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Aspire.Microsoft.EntityFrameworkCore.SqlServer" Version="13.6.1" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.13" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.13" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.13" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.13">
+        <PackageReference Include="Aspire.Microsoft.EntityFrameworkCore.SqlServer" Version="13.6.5" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="11.0.0" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="11.0.0" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="11.0.0" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="11.0.0">
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.13">
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="11.0.0">
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>

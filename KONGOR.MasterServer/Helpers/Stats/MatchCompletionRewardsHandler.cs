@@ -89,6 +89,8 @@ public static class MatchCompletionRewardsHandler
 
         if (statistics.CurrentMedal() > statistics.HighestMedal)
             statistics.HighestMedal = statistics.CurrentMedal();
+
+        await ProgressQuestsAndWarEffort(databaseContext, logger, account, matchInformation, matchStatistics, matchParticipantStatistics);
     }
 
     /// <summary>
@@ -386,5 +388,160 @@ public static class MatchCompletionRewardsHandler
             matchParticipantStatistics.GroupNumber, matchParticipantStatistics.AccountID, matchParticipantStatistics.MatchID);
 
         return (matchRewards.Solo.Win, matchRewards.Solo.Loss);
+    }
+
+    /// <summary>
+    ///     Evaluates and updates active War Effort quests and accumulates bag reputation for the participant.
+    /// </summary>
+    private static async Task ProgressQuestsAndWarEffort(
+        MerrickContext databaseContext,
+        ILogger logger,
+        Account account,
+        MatchInformation? matchInformation,
+        MatchStatistics matchStatistics,
+        MatchParticipantStatistics matchParticipantStatistics)
+    {
+        List<AccountQuestProgress> activeProgresses = await databaseContext.AccountQuestProgresses
+            .Include(progress => progress.Quest)
+            .Where(progress => progress.AccountID == account.ID && (progress.SlotIndex == 0 || progress.SlotIndex == 1) && progress.IsCompleted.Equals(false))
+            .ToListAsync();
+
+        if (activeProgresses.Count == 0)
+            return;
+
+        AccountWarEffort? warEffort = await databaseContext.AccountWarEfforts
+            .SingleOrDefaultAsync(we => we.AccountID == account.ID);
+
+        if (warEffort is null)
+        {
+            warEffort = new AccountWarEffort
+            {
+                AccountID = account.ID,
+                CurrentCycle = 1,
+                CurrentBagNumber = 1,
+                CurrentBagReputation = 0,
+                TotalCycleReputation = 0,
+                DailyResetsRemaining = 1,
+                CycleStartDate = DateTimeOffset.UtcNow,
+                CycleEndDate = DateTimeOffset.UtcNow.AddDays(28)
+            };
+
+            await databaseContext.AccountWarEfforts.AddAsync(warEffort);
+        }
+
+        WarEffortBag? currentBag = await databaseContext.WarEffortBags
+            .SingleOrDefaultAsync(bag => bag.BagNumber == warEffort.CurrentBagNumber && bag.IsActive);
+
+        bool isWin = matchParticipantStatistics.Win == 1;
+        string heroIdentifier = matchParticipantStatistics.HeroIdentifier ?? string.Empty;
+
+        foreach (AccountQuestProgress progress in activeProgresses)
+        {
+            Quest? quest = progress.Quest;
+
+            if (quest is null || quest.IsActive.Equals(false))
+                continue;
+
+            int progressToAdd = 0;
+
+            switch (quest.TriggerName)
+            {
+                case "achievement_value_games_won":
+                    if (isWin) progressToAdd = 1;
+                    break;
+
+                case "achievement_value_caldavar_won":
+                    if (isWin) progressToAdd = 1;
+                    break;
+
+                case "achievement_value_mid_wars_won":
+                    if (isWin && (matchInformation?.Map.Contains("midwars", StringComparison.OrdinalIgnoreCase) ?? false))
+                        progressToAdd = 1;
+                    break;
+
+                case "achievement_value_prophet_kills":
+                case "achievement_value_kills":
+                    progressToAdd = matchParticipantStatistics.HeroKills;
+                    break;
+
+                case "achievement_value_assists":
+                    progressToAdd = matchParticipantStatistics.HeroAssists;
+                    break;
+
+                case "achievement_value_wards_placed":
+                    progressToAdd = matchParticipantStatistics.WardsPlaced;
+                    break;
+
+                case "achievement_value_hero_played":
+                    if (string.Equals(heroIdentifier, quest.HeroProduct, StringComparison.OrdinalIgnoreCase))
+                        progressToAdd = 1;
+                    break;
+
+                case "achievement_value_role_played":
+                case "achievement_value_attribute_played":
+                default:
+                    progressToAdd = 1;
+                    break;
+            }
+
+            if (progressToAdd > 0)
+            {
+                progress.CurrentCount += progressToAdd;
+
+                if (progress.CurrentCount >= quest.TargetCount)
+                {
+                    progress.CurrentCount = quest.TargetCount;
+                    progress.IsCompleted = true;
+
+                    account.User.SilverCoins += quest.RewardSilver;
+                    account.User.GoldCoins += quest.RewardGold;
+                    account.User.PlinkoTickets += quest.RewardTickets;
+
+                    if (string.IsNullOrWhiteSpace(quest.RewardUpgradeCode) is false
+                        && account.User.OwnedStoreItems.Contains(quest.RewardUpgradeCode).Equals(false))
+                    {
+                        account.User.OwnedStoreItems.Add(quest.RewardUpgradeCode);
+                    }
+
+                    warEffort.CurrentBagReputation += quest.ReputationReward;
+                    warEffort.TotalCycleReputation += quest.ReputationReward;
+
+                    logger.LogInformation(
+                        @"Account ""{AccountName}"" Completed Quest ""{QuestTitle}"" (+{Rep} Rep, +{Silver} Silver)",
+                        account.Name, quest.Title, quest.ReputationReward, quest.RewardSilver
+                    );
+
+                    if (currentBag is not null && warEffort.CurrentBagReputation >= currentBag.RequiredReputation)
+                    {
+                        AccountCompletedBag completedBag = new ()
+                        {
+                            AccountID = account.ID,
+                            Cycle = warEffort.CurrentCycle,
+                            BagNumber = currentBag.BagNumber,
+                            BagID = currentBag.ID,
+                            IsOpened = false,
+                            CompletedAt = DateTimeOffset.UtcNow,
+                            GrantedSilver = currentBag.RewardSilver,
+                            GrantedGold = currentBag.RewardGold,
+                            GrantedTickets = currentBag.RewardTickets,
+                            GrantedProductCode = currentBag.RewardProductCode
+                        };
+
+                        await databaseContext.AccountCompletedBags.AddAsync(completedBag);
+
+                        logger.LogInformation(
+                            @"Account ""{AccountName}"" Unlocked War Effort Bag #{BagNumber} ({BagName})!",
+                            account.Name, currentBag.BagNumber, currentBag.Name
+                        );
+
+                        warEffort.CurrentBagNumber = Math.Min(14, warEffort.CurrentBagNumber + 1);
+                        warEffort.CurrentBagReputation = 0;
+
+                        currentBag = await databaseContext.WarEffortBags
+                            .SingleOrDefaultAsync(bag => bag.BagNumber == warEffort.CurrentBagNumber && bag.IsActive);
+                    }
+                }
+            }
+        }
     }
 }

@@ -1,3 +1,4 @@
+global using ASPIRE.Common;
 global using ASPIRE.Common.Constants;
 global using ASPIRE.Common.Extensions.Logging;
 global using ASPIRE.Common.Extensions.Services;
@@ -5,6 +6,8 @@ global using ASPIRE.Common.Extensions.Services;
 // TODO: Replace This Direct Reference With A Service Bus For Private Inter-Service Communication At The Server Level
 global using KONGOR.MasterServer.Configuration;
 global using KONGOR.MasterServer.Configuration.Economy;
+global using KONGOR.MasterServer.Extensions.Cache;
+global using KONGOR.MasterServer.Models.ServerManagement;
 
 global using FluentValidation;
 global using FluentValidation.Results;
@@ -18,6 +21,7 @@ global using MERRICK.DatabaseContext.Entities.Economy;
 global using MERRICK.DatabaseContext.Entities.Statistics;
 global using MERRICK.DatabaseContext.Entities.Telemetry;
 global using MERRICK.DatabaseContext.Entities.Utility;
+global using Role = MERRICK.DatabaseContext.Entities.Utility.Role;
 global using MERRICK.DatabaseContext.Enumerations;
 global using MERRICK.DatabaseContext.Extensions;
 global using MERRICK.DatabaseContext.Persistence;
@@ -39,6 +43,8 @@ global using Microsoft.OpenApi;
 global using MimeKit;
 
 global using SecureRemotePassword;
+
+global using StackExchange.Redis;
 
 global using System.IdentityModel.Tokens.Jwt;
 global using System.Net;

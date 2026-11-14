@@ -12,20 +12,13 @@ public sealed record IssueCurrencyDTO
     int Amount
 );
 
-public sealed record AccountCollisionDTO
-(
-    string AccountName,
-    List<string> MatchingAccountNames,
-    string CollisionReason
-);
-
 public sealed record SuspensionIssueDTO
 (
     string OffenderAccountName,
     string Duration,
     string Reason,
     string InternalDetails,
-    int SuspendByMask = 11
+    int SuspendByMask = 1
 );
 
 public sealed record SuspensionDTO
@@ -58,4 +51,46 @@ public sealed record IssueRedeemableCodesDTO
     int? ProductID,
     int Amount
 );
+
+public sealed record ChangeSuspensionDurationDTO
+(
+    string Duration
+);
+
+public sealed record AccountActionDTO
+(
+    string AccountName
+);
+
+public sealed record LookupQueryDTO
+(
+    string Query
+);
+
+public sealed record ConnectedAccountUserResultDTO
+(
+    string Origin,
+    string Name,
+    bool Main,
+    string Type,
+    string NameWithClanTag,
+    string MaskedEmail,
+    string UserRole
+);
+
+public sealed record StaffRosterMemberDTO
+(
+    int ID,
+    string Name,
+    string Email,
+    string Role
+);
+
+public sealed record AccountTypeResponseDTO
+(
+    string AccountName,
+    string AccountType,
+    int TypeId
+);
+
 

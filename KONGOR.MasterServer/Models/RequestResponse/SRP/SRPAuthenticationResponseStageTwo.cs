@@ -1,4 +1,4 @@
-﻿namespace KONGOR.MasterServer.Models.RequestResponse.SRP;
+namespace KONGOR.MasterServer.Models.RequestResponse.SRP;
 
 /// <summary>
 ///     <para>
@@ -433,13 +433,10 @@ public class SRPAuthenticationResponseStageTwo
     public required List<DataPoint> DataPoints { get; set; }
 
     /// <summary>
-    ///     Used for the quest system, which has been disabled.
-    ///     <br/>
-    ///     While the quest system is disabled, this dictionary contains a single element with a key of "error".
-    ///     The object which is the value of this element has the values of all its properties set to "0".
+    ///     The quest system and reward bags currently assigned to the account.
     /// </summary>
     [PHPProperty("quest_system")]
-    public Dictionary<string, QuestSystem> QuestSystem { get; set; } = new () { { "error", new QuestSystem() } };
+    public Dictionary<string, object> QuestSystem { get; set; } = [];
 
     /// <summary>
     ///     The cloud storage settings of the account.

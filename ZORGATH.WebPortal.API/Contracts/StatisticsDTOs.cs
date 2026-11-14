@@ -3,8 +3,17 @@ namespace ZORGATH.WebPortal.API.Contracts;
 public sealed record ServerStatsDTO
 (
     int TotalPlayers,
+    int TotalAccounts,
     int TotalUsers,
-    int TotalClans
+    int TotalClans,
+    int OnlinePlayers,
+    int MatchesInProgress
+);
+
+public sealed record ActiveStatsDTO
+(
+    int OnlinePlayers,
+    int MatchesInProgress
 );
 
 public sealed record LocationPointDTO

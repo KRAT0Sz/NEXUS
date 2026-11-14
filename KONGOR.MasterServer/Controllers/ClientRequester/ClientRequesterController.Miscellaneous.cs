@@ -204,10 +204,22 @@ public partial class ClientRequesterController
             return Unauthorized($@"Unrecognised Cookie ""{cookie}""");
 
         Account? account = await MerrickContext.Accounts
+            .Include(queriedAccount => queriedAccount.User)
             .SingleOrDefaultAsync(acc => acc.Name.Equals(accountName));
 
         if (account is not null)
         {
+            if (account.User.OwnedStoreItems.Contains("m.Stat Reset").Equals(false))
+            {
+                Dictionary<string, object> notOwnedResponse = new ()
+                {
+                    ["success"] = false,
+                    ["errors"]  = "Stat Reset Item Is Not Owned"
+                };
+
+                return Ok(PhpSerialization.Serialize(notOwnedResponse));
+            }
+
             List<AccountStatistics> statisticsList = await MerrickContext.AccountStatistics
                 .Where(stat => stat.AccountID == account.ID)
                 .ToListAsync();
@@ -230,6 +242,7 @@ public partial class ClientRequesterController
                 statistics.HighestMedal = Rank.NO_MEDAL;
             }
 
+            account.User.OwnedStoreItems.Remove("m.Stat Reset");
             await MerrickContext.SaveChangesAsync();
         }
 

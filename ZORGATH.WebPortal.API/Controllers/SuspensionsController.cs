@@ -46,7 +46,7 @@ public sealed class SuspensionsController(MerrickContext databaseContext, ILogge
             OffenderAccountID = offender.ID,
             IssuerAccount = null,
             IssuerAccountID = null,
-            SuspendByMask = payload.SuspendByMask,
+            SuspendByMask = (int)SuspensionBy.AccountName,
             TimestampStart = timestampStart,
             TimestampBaseEnd = timestampBaseEnd,
             TimestampEnd = timestampEnd,
@@ -85,6 +85,37 @@ public sealed class SuspensionsController(MerrickContext databaseContext, ILogge
         );
 
         return CreatedAtAction(nameof(IssueSuspension), response);
+    }
+
+    [HttpGet(Name = "Get Suspensions")]
+    [ProducesResponseType(typeof(List<SuspensionDTO>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetSuspensions([FromQuery] string? accountName = null)
+    {
+        if (string.IsNullOrWhiteSpace(accountName) is false)
+        {
+            return await GetSuspensionsByAccountName(accountName);
+        }
+
+        List<Suspension> suspensions = await MerrickContext.Suspensions
+            .Include(suspension => suspension.OffenderAccount)
+            .Include(suspension => suspension.IssuerAccount)
+            .OrderByDescending(suspension => suspension.TimestampStart)
+            .Take(50)
+            .ToListAsync();
+
+        List<SuspensionDTO> response = suspensions.Select(suspension => new SuspensionDTO
+        (
+            suspension.ID,
+            suspension.OffenderAccount?.Name ?? "Unknown",
+            suspension.IssuerAccount?.Name ?? "SYSTEM",
+            suspension.TimestampStart,
+            suspension.TimestampEnd,
+            suspension.Reason,
+            suspension.Multiplier,
+            suspension.Override
+        )).ToList();
+
+        return Ok(response);
     }
 
     [HttpGet("Account/{accountName}", Name = "Get Suspensions By Account Name")]
@@ -152,6 +183,46 @@ public sealed class SuspensionsController(MerrickContext databaseContext, ILogge
         Logger.LogInformation(@"Suspension {SuspensionID} Overridden", id);
 
         return Ok(new { Message = $"Suspension {id} overrode successfully" });
+    }
+
+    [HttpPost("{id:int}/Duration", Name = "Change Suspension Duration")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ChangeSuspensionDuration(int id, [FromBody] ChangeSuspensionDurationDTO payload)
+    {
+        Suspension? suspension = await MerrickContext.Suspensions
+            .SingleOrDefaultAsync(candidate => candidate.ID == id);
+
+        if (suspension is null)
+        {
+            return NotFound($@"Suspension With ID {id} Was Not Found");
+        }
+
+        TimeSpan newDuration = ParseDuration(payload.Duration);
+
+        if (newDuration.Equals(TimeSpan.Zero))
+        {
+            return BadRequest($@"Invalid Suspension Duration ""{payload.Duration}""; Use Values Like ""1D"", ""3D"", ""1W"", Or ""1M""");
+        }
+
+        suspension.TimestampEnd = suspension.TimestampStart.Add(newDuration * suspension.Multiplier);
+
+        StaffMemberAction action = new ()
+        {
+            SourceID = Guid.Empty,
+            TargetID = suspension.OffenderAccountID.ToString(),
+            Action = StaffMemberActionType.SetNewSuspensionDuration,
+            Details = $"Changed duration to {payload.Duration} (New End: {suspension.TimestampEnd:u})",
+            Timestamp = DateTimeOffset.UtcNow
+        };
+
+        await MerrickContext.StaffMemberActions.AddAsync(action);
+        await MerrickContext.SaveChangesAsync();
+
+        Logger.LogInformation(@"Suspension {SuspensionID} Duration Changed To {Duration}", id, payload.Duration);
+
+        return Ok(new { Message = $"Suspension {id} duration updated successfully to {payload.Duration}" });
     }
 
     internal static TimeSpan ParseDuration(string duration)
