@@ -556,5 +556,53 @@ public class QuestService(MerrickContext databaseContext, ILogger<QuestService> 
             { "player_bag_complete", playerBagComplete }
         };
     }
+
+    /// <inheritdoc/>
+    public async Task<List<QuestLeaderboardEntry>> GetQuestLeaderboardAsync(int take = 50)
+    {
+        int limit = Math.Clamp(take, 1, 100);
+
+        List<AccountWarEffort> topRecords = await MerrickContext.AccountWarEfforts
+            .AsNoTracking()
+            .Include(we => we.Account)
+                .ThenInclude(account => account!.Clan)
+            .OrderByDescending(we => we.TotalCycleReputation)
+            .ThenByDescending(we => we.CurrentBagNumber)
+            .Take(limit)
+            .ToListAsync();
+
+        List<int> accountIDs = topRecords.Select(we => we.AccountID).ToList();
+
+        Dictionary<int, int> completedBagsCountByAccount = await MerrickContext.AccountCompletedBags
+            .AsNoTracking()
+            .Where(b => accountIDs.Contains(b.AccountID))
+            .GroupBy(b => b.AccountID)
+            .Select(g => new { AccountID = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.AccountID, x => x.Count);
+
+        List<QuestLeaderboardEntry> leaderboard = [];
+        int currentRank = 1;
+
+        foreach (AccountWarEffort we in topRecords)
+        {
+            int completedBags = completedBagsCountByAccount.TryGetValue(we.AccountID, out int count) ? count : 0;
+            string accountName = we.Account?.Name ?? $"Account_{we.AccountID}";
+            string clanTag = we.Account?.Clan?.Tag ?? string.Empty;
+
+            leaderboard.Add(new QuestLeaderboardEntry
+            (
+                Rank: currentRank++,
+                AccountID: we.AccountID,
+                AccountName: accountName,
+                ClanTag: clanTag,
+                TotalReputation: we.TotalCycleReputation,
+                CurrentBagNumber: we.CurrentBagNumber,
+                CurrentCycle: we.CurrentCycle,
+                CompletedBagsCount: completedBags
+            ));
+        }
+
+        return leaderboard;
+    }
 }
 

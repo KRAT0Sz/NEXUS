@@ -68,6 +68,7 @@ export default {
       caldavar: 'Caldavar',
       caldavarCasual: 'Caldavar (Casual)',
       midwars: 'Midwars',
+      warEffort: 'The War Effort (เควสต์)',
     },
     subTitle: 'ท็อป {x} ผู้เล่นในโหมด {gameMode}',
     search: 'ค้นหา',

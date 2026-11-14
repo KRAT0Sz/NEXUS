@@ -32,5 +32,27 @@ public interface IQuestService
     /// <param name="accountID">The identifier of the account.</param>
     /// <returns>A dictionary containing quest types, active player quests, all cycle bags, active bag progression, and completed bags.</returns>
     Task<Dictionary<string, object>> BuildCurrentQuestsDictionaryAsync(int accountID);
+
+    /// <summary>
+    ///     Retrieves the top player rankings for the quest progression system ordered by total reputation points.
+    /// </summary>
+    /// <param name="take">The maximum number of rankings to retrieve.</param>
+    /// <returns>A list of leaderboard entries ordered by rank.</returns>
+    Task<List<QuestLeaderboardEntry>> GetQuestLeaderboardAsync(int take = 50);
 }
+
+/// <summary>
+///     Represents an entry in the quest progression leaderboard.
+/// </summary>
+public sealed record QuestLeaderboardEntry
+(
+    int Rank,
+    int AccountID,
+    string AccountName,
+    string ClanTag,
+    int TotalReputation,
+    int CurrentBagNumber,
+    int CurrentCycle,
+    int CompletedBagsCount
+);
 

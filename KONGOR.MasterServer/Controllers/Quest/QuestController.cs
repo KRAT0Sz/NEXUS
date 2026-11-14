@@ -1,5 +1,7 @@
 namespace KONGOR.MasterServer.Controllers.Quest;
 
+using System.Net;
+using System.Text;
 using Quest = MERRICK.DatabaseContext.Entities.Economy.Quest;
 
 [ApiController]
@@ -399,5 +401,88 @@ public class QuestController(MerrickContext databaseContext, IDatabase distribut
         };
 
         return Content(PhpSerialization.Serialize(systemInfo), "text/plain");
+    }
+
+    /// <summary>
+    ///     Returns the quest leaderboard ranking players by total cycle reputation points in PHP serialised format.
+    /// </summary>
+    [HttpPost("master/quest/getleaderboard", Name = "Get Quest Leaderboard"), HttpGet("master/quest/getleaderboard", Name = "Get Quest Leaderboard Get")]
+    public async Task<IActionResult> GetQuestLeaderboard([FromQuery] int take = 50)
+    {
+        List<QuestLeaderboardEntry> leaderboard = await QuestService.GetQuestLeaderboardAsync(take);
+
+        Dictionary<string, object> response = [];
+        for (int i = 0; i < leaderboard.Count; i++)
+        {
+            QuestLeaderboardEntry entry = leaderboard[i];
+            response[i.ToString()] = new Dictionary<string, object>
+            {
+                { "rank", entry.Rank.ToString() },
+                { "account_id", entry.AccountID.ToString() },
+                { "nickname", entry.AccountName },
+                { "clan_tag", entry.ClanTag },
+                { "reputation", entry.TotalReputation.ToString() },
+                { "bag_number", entry.CurrentBagNumber.ToString() },
+                { "completed_bags", entry.CompletedBagsCount.ToString() },
+                { "cycle", entry.CurrentCycle.ToString() }
+            };
+        }
+
+        string payload = PhpSerialization.Serialize(response);
+        return Content(payload, "text/plain");
+    }
+
+    /// <summary>
+    ///     Serves an HTML view of the quest leaderboard formatted specifically for the in-game browser panel.
+    /// </summary>
+    [HttpGet("master/quest/ladder", Name = "Get Quest Ladder Page")]
+    [HttpGet("web/Quest-Ladder/index.html", Name = "Get Quest Ladder HTML")]
+    public async Task<IActionResult> GetQuestLadderPage([FromQuery] int take = 50)
+    {
+        List<QuestLeaderboardEntry> leaderboard = await QuestService.GetQuestLeaderboardAsync(take);
+
+        StringBuilder html = new ();
+        html.Append("<!DOCTYPE html><html><head><meta charset='utf-8'/><style>");
+        html.Append("body { background: #0c0e12; color: #c4c9d4; font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 20px; font-size: 13px; }");
+        html.Append(".header { display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #b8860b; padding-bottom: 12px; margin-bottom: 16px; }");
+        html.Append(".title { font-size: 20px; font-weight: bold; color: #e6c875; text-transform: uppercase; letter-spacing: 1px; }");
+        html.Append(".subtitle { font-size: 12px; color: #8e95a5; }");
+        html.Append("table { width: 100%; border-collapse: collapse; }");
+        html.Append("th { background: #161b24; color: #deb887; text-align: left; padding: 10px 14px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #2d3748; }");
+        html.Append("td { padding: 9px 14px; border-bottom: 1px solid #1a2230; }");
+        html.Append("tr:nth-child(even) { background: #10141c; }");
+        html.Append("tr:hover { background: #1c2333; }");
+        html.Append(".rank-1 { color: #ffd700; font-weight: bold; }");
+        html.Append(".rank-2 { color: #c0c0c0; font-weight: bold; }");
+        html.Append(".rank-3 { color: #cd7f32; font-weight: bold; }");
+        html.Append(".clan-tag { color: #7f9cf5; font-size: 11px; margin-right: 4px; }");
+        html.Append(".player-name { font-weight: 600; color: #f0f4f8; }");
+        html.Append(".rep-badge { display: inline-block; background: rgba(184, 134, 11, 0.2); border: 1px solid rgba(184, 134, 11, 0.4); color: #ffd700; padding: 2px 8px; border-radius: 4px; font-weight: bold; }");
+        html.Append(".bag-badge { display: inline-block; background: rgba(56, 178, 172, 0.15); border: 1px solid rgba(56, 178, 172, 0.35); color: #4fd1c5; padding: 2px 8px; border-radius: 4px; }");
+        html.Append("</style></head><body>");
+        html.Append("<div class='header'><div><div class='title'>The War Effort — Quest Leaderboard</div>");
+        html.Append("<div class='subtitle'>Season Rankings • Total Reputation Points Accumulated</div></div></div>");
+        html.Append("<table><thead><tr><th>Rank</th><th>Player</th><th style='text-align:right;'>Reputation</th><th style='text-align:right;'>Milestone Bag</th><th style='text-align:right;'>Bags Unlocked</th></tr></thead><tbody>");
+
+        if (leaderboard.Count == 0)
+        {
+            html.Append("<tr><td colspan='5' style='text-align:center; padding: 30px; color: #6b7280;'>No quest ranking data recorded for the current cycle yet.</td></tr>");
+        }
+        else
+        {
+            foreach (QuestLeaderboardEntry entry in leaderboard)
+            {
+                string rankClass = entry.Rank == 1 ? "rank-1" : (entry.Rank == 2 ? "rank-2" : (entry.Rank == 3 ? "rank-3" : ""));
+                string clanHtml = string.IsNullOrEmpty(entry.ClanTag) ? "" : $"<span class='clan-tag'>[{entry.ClanTag}]</span>";
+                html.Append($"<tr><td class='{rankClass}'>#{entry.Rank}</td>");
+                html.Append($"<td>{clanHtml}<span class='player-name'>{WebUtility.HtmlEncode(entry.AccountName)}</span></td>");
+                html.Append($"<td style='text-align:right;'><span class='rep-badge'>{entry.TotalReputation} RP</span></td>");
+                html.Append($"<td style='text-align:right;'><span class='bag-badge'>Bag #{entry.CurrentBagNumber}</span></td>");
+                html.Append($"<td style='text-align:right;'>{entry.CompletedBagsCount}</td></tr>");
+            }
+        }
+
+        html.Append("</tbody></table></body></html>");
+        return Content(html.ToString(), "text/html");
     }
 }

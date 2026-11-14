@@ -181,6 +181,56 @@ public sealed class QuestsController(MerrickContext databaseContext, ILogger<Que
         return Ok(response);
     }
 
+    [HttpGet("Leaderboard", Name = "Get Quest Leaderboard")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(List<QuestLeaderboardEntryDTO>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetLeaderboard([FromQuery] int take = 50)
+    {
+        int limit = Math.Clamp(take, 1, 100);
+
+        List<AccountWarEffort> topWarEfforts = await MerrickContext.AccountWarEfforts
+            .AsNoTracking()
+            .Include(we => we.Account)
+                .ThenInclude(account => account!.Clan)
+            .OrderByDescending(we => we.TotalCycleReputation)
+            .ThenByDescending(we => we.CurrentBagNumber)
+            .Take(limit)
+            .ToListAsync();
+
+        List<int> accountIDs = topWarEfforts.Select(we => we.AccountID).ToList();
+
+        Dictionary<int, int> completedBagsCountByAccount = await MerrickContext.AccountCompletedBags
+            .AsNoTracking()
+            .Where(b => accountIDs.Contains(b.AccountID))
+            .GroupBy(b => b.AccountID)
+            .Select(g => new { AccountID = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.AccountID, x => x.Count);
+
+        List<QuestLeaderboardEntryDTO> response = [];
+        int rank = 1;
+
+        foreach (AccountWarEffort we in topWarEfforts)
+        {
+            int completedBags = completedBagsCountByAccount.TryGetValue(we.AccountID, out int count) ? count : 0;
+            string accountName = we.Account?.Name ?? $"Account_{we.AccountID}";
+            string clanTag = we.Account?.Clan?.Tag ?? string.Empty;
+
+            response.Add(new QuestLeaderboardEntryDTO
+            (
+                Rank: rank++,
+                AccountID: we.AccountID,
+                AccountName: accountName,
+                ClanTag: clanTag,
+                TotalReputation: we.TotalCycleReputation,
+                CurrentBagNumber: we.CurrentBagNumber,
+                CurrentCycle: we.CurrentCycle,
+                CompletedBagsCount: completedBags
+            ));
+        }
+
+        return Ok(response);
+    }
+
     [HttpPost("Bags/{bagNumber:int}/Open", Name = "Open War Effort Bag")]
     [ProducesResponseType(typeof(OpenWarEffortBagResponseDTO), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

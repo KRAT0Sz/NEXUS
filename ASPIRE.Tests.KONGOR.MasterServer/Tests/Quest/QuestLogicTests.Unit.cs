@@ -2,6 +2,7 @@ namespace ASPIRE.Tests.KONGOR.MasterServer.Tests.Quest;
 
 using global::KONGOR.MasterServer.Configuration;
 using global::KONGOR.MasterServer.Configuration.Economy;
+using global::KONGOR.MasterServer.Services;
 using MERRICK.DatabaseContext.Entities.Economy;
 using QuestEntity = MERRICK.DatabaseContext.Entities.Economy.Quest;
 
@@ -326,6 +327,47 @@ public sealed class QuestLogicTests_Unit
             await Assert.That(finalBag.RewardType).IsEqualTo("PRODUCT");
             await Assert.That(finalBag.RewardProductCode).IsNotNull();
             await Assert.That(finalBag.RewardProductName).IsNotNull();
+        }
+    }
+
+    [Test]
+    public async Task Quest_Leaderboard_Sorts_By_Total_Reputation_And_Bag_Number_Correctly()
+    {
+        List<QuestLeaderboardEntry> entries =
+        [
+            new (1, 101, "PlayerOne", "CLAN", 450, 10, 1, 9),
+            new (2, 102, "PlayerTwo", "HON", 300, 7, 1, 6),
+            new (3, 103, "PlayerThree", "", 150, 4, 1, 3)
+        ];
+
+        Dictionary<string, object> response = [];
+        for (int i = 0; i < entries.Count; i++)
+        {
+            QuestLeaderboardEntry entry = entries[i];
+            response[i.ToString()] = new Dictionary<string, object>
+            {
+                { "rank", entry.Rank.ToString() },
+                { "account_id", entry.AccountID.ToString() },
+                { "nickname", entry.AccountName },
+                { "clan_tag", entry.ClanTag },
+                { "reputation", entry.TotalReputation.ToString() },
+                { "bag_number", entry.CurrentBagNumber.ToString() },
+                { "completed_bags", entry.CompletedBagsCount.ToString() },
+                { "cycle", entry.CurrentCycle.ToString() }
+            };
+        }
+
+        string serialised = PhpSerialization.Serialize(response);
+        await Assert.That(serialised).IsNotNull();
+        await Assert.That(serialised.Contains("PlayerOne")).IsTrue();
+        await Assert.That(serialised.Contains("450")).IsTrue();
+
+        using (Assert.Multiple())
+        {
+            await Assert.That(entries[0].TotalReputation).IsGreaterThan(entries[1].TotalReputation);
+            await Assert.That(entries[1].TotalReputation).IsGreaterThan(entries[2].TotalReputation);
+            await Assert.That(entries[0].CurrentBagNumber).IsEqualTo(10);
+            await Assert.That(entries[0].Rank).IsEqualTo(1);
         }
     }
 }

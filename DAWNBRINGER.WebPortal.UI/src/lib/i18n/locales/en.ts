@@ -69,6 +69,7 @@ export default {
       caldavar: 'Caldavar',
       caldavarCasual: 'Caldavar (Casual)',
       midwars: 'Midwars',
+      warEffort: 'The War Effort (Quests)',
     },
     subTitle: 'Top {x} Rated Players For {gameMode}',
     search: 'Search',

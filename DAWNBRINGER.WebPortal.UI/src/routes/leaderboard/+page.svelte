@@ -1,9 +1,13 @@
 <script lang="ts">
-	import { Trophy, Shield, Gamepad2, Award } from 'lucide-svelte';
+	import { onMount } from 'svelte';
+	import { Trophy, Shield, Gamepad2, Award, Flame } from 'lucide-svelte';
 	import { t } from '#lib/i18n/index.svelte';
-	import type { LeaderboardItem } from '#lib/types';
+	import { apiFetch } from '#lib/api';
+	import type { LeaderboardItem, QuestLeaderboardItem } from '#lib/types';
 
-	let activeTab = $state<'ranked' | 'casual'>('ranked');
+	let activeTab = $state<'ranked' | 'casual' | 'quests'>('ranked');
+	let questEntries = $state<QuestLeaderboardItem[]>([]);
+	let loadingQuests = $state<boolean>(false);
 
 	const rankedEntries: LeaderboardItem[] = [
 		{ rank: 1, playerName: 'MoonMeander', clanTag: 'tdM', rating: 2045.2, wins: 342, losses: 85 },
@@ -23,6 +27,32 @@
 		{ rank: 2, playerName: 'MidWarsKing', clanTag: 'MW', rating: 1820.0, wins: 195, losses: 55 },
 		{ rank: 3, playerName: 'CasualHero', clanTag: 'FUN', rating: 1795.3, wins: 140, losses: 48 }
 	];
+
+	async function loadQuestLeaderboard(): Promise<void> {
+		if (loadingQuests) return;
+		loadingQuests = true;
+		try {
+			const res = await apiFetch<QuestLeaderboardItem[]>('/Quests/Leaderboard?take=50');
+			if (res.ok && res.data && res.data.length > 0) {
+				questEntries = res.data;
+			}
+		} catch {
+			// Retain existing or fallback
+		} finally {
+			loadingQuests = false;
+		}
+	}
+
+	function switchTab(tab: 'ranked' | 'casual' | 'quests'): void {
+		activeTab = tab;
+		if (tab === 'quests' && questEntries.length === 0) {
+			loadQuestLeaderboard();
+		}
+	}
+
+	onMount(() => {
+		loadQuestLeaderboard();
+	});
 
 	function getWinRate(wins: number, losses: number): number {
 		const total = wins + losses;
@@ -55,7 +85,7 @@
 			<button
 				class="tab-btn"
 				class:active={activeTab === 'ranked'}
-				onclick={() => { activeTab = 'ranked'; }}
+				onclick={() => { switchTab('ranked'); }}
 			>
 				<Shield size={18} />
 				<span>{t('ladder.gameModes.caldavar')}</span>
@@ -63,68 +93,141 @@
 			<button
 				class="tab-btn"
 				class:active={activeTab === 'casual'}
-				onclick={() => { activeTab = 'casual'; }}
+				onclick={() => { switchTab('casual'); }}
 			>
 				<Gamepad2 size={18} />
 				<span>{t('ladder.gameModes.caldavarCasual')}</span>
+			</button>
+			<button
+				class="tab-btn"
+				class:active={activeTab === 'quests'}
+				onclick={() => { switchTab('quests'); }}
+			>
+				<Flame size={18} />
+				<span>{t('ladder.gameModes.warEffort')}</span>
 			</button>
 		</div>
 
 		<!-- Table -->
 		<div class="table-responsive">
-			<table class="data-table">
-				<thead>
-					<tr>
-						<th style="width: 90px;">Rank</th>
-						<th>Player</th>
-						<th style="width: 120px;">Clan</th>
-						<th style="width: 140px;">MMR</th>
-						<th style="width: 120px;">{t('ladder.winRate')}</th>
-						<th style="width: 150px;">Record (W/L)</th>
-					</tr>
-				</thead>
-				<tbody>
-					{#each currentEntries as item}
-						{@const winRate = getWinRate(item.wins, item.losses)}
+			{#if activeTab === 'quests'}
+				<table class="data-table">
+					<thead>
 						<tr>
-							<td data-label="Rank">
-								{#if item.rank === 1}
-									<span class="chip chip-gold">
-										<Award size={14} /> #1
-									</span>
-								{:else if item.rank === 2}
-									<span class="chip chip-silver">#2</span>
-								{:else if item.rank === 3}
-									<span class="chip chip-bronze">#3</span>
-								{:else}
-									<span class="rank-plain">#{item.rank}</span>
-								{/if}
-							</td>
-							<td data-label="Player">
-								<span class="player-name">{item.playerName}</span>
-							</td>
-							<td data-label="Clan">
-								{#if item.clanTag}
-									<span class="chip chip-tag">[{item.clanTag}]</span>
-								{:else}
-									<span class="dash">-</span>
-								{/if}
-							</td>
-							<td data-label="MMR">
-								<span class="mmr-val">{item.rating.toFixed(1)}</span>
-							</td>
-							<td data-label="Win Rate">
-								<span class="winrate {winRate >= 50 ? 'winrate-high' : 'winrate-low'}">
-									{winRate.toFixed(1)}%
-								</span>
-							</td>
-							<td data-label="Record">
-								<span>{item.wins} W - {item.losses} L</span>
-							</td>
+							<th style="width: 90px;">Rank</th>
+							<th>Player</th>
+							<th style="width: 120px;">Clan</th>
+							<th style="width: 160px; text-align: right;">Reputation</th>
+							<th style="width: 140px; text-align: right;">Current Bag</th>
+							<th style="width: 140px; text-align: right;">Completed</th>
 						</tr>
-					{/each}
-				</tbody>
-			</table>
+					</thead>
+					<tbody>
+						{#if questEntries.length === 0}
+							<tr>
+								<td colspan="6" class="text-center" style="padding: 32px; opacity: 0.6;">
+									{#if loadingQuests}
+										Loading Quest Rankings...
+									{:else}
+										No quest rankings recorded for the current cycle yet.
+									{/if}
+								</td>
+							</tr>
+						{:else}
+							{#each questEntries as item}
+								<tr>
+									<td data-label="Rank">
+										{#if item.rank === 1}
+											<span class="chip chip-gold">
+												<Award size={14} /> #1
+											</span>
+										{:else if item.rank === 2}
+											<span class="chip chip-silver">#2</span>
+										{:else if item.rank === 3}
+											<span class="chip chip-bronze">#3</span>
+										{:else}
+											<span class="rank-plain">#{item.rank}</span>
+										{/if}
+									</td>
+									<td data-label="Player">
+										<span class="player-name">{item.accountName}</span>
+									</td>
+									<td data-label="Clan">
+										{#if item.clanTag}
+											<span class="chip chip-tag">[{item.clanTag}]</span>
+										{:else}
+											<span class="dash">-</span>
+										{/if}
+									</td>
+									<td data-label="Reputation" style="text-align: right;">
+										<span class="rep-val">{item.totalReputation} RP</span>
+									</td>
+									<td data-label="Current Bag" style="text-align: right;">
+										<span class="bag-val">Bag #{item.currentBagNumber}</span>
+									</td>
+									<td data-label="Completed" style="text-align: right;">
+										<span>{item.completedBagsCount}</span>
+									</td>
+								</tr>
+							{/each}
+						{/if}
+					</tbody>
+				</table>
+			{:else}
+				<table class="data-table">
+					<thead>
+						<tr>
+							<th style="width: 90px;">Rank</th>
+							<th>Player</th>
+							<th style="width: 120px;">Clan</th>
+							<th style="width: 140px;">MMR</th>
+							<th style="width: 120px;">{t('ladder.winRate')}</th>
+							<th style="width: 150px;">Record (W/L)</th>
+						</tr>
+					</thead>
+					<tbody>
+						{#each currentEntries as item}
+							{@const winRate = getWinRate(item.wins, item.losses)}
+							<tr>
+								<td data-label="Rank">
+									{#if item.rank === 1}
+										<span class="chip chip-gold">
+											<Award size={14} /> #1
+										</span>
+									{:else if item.rank === 2}
+										<span class="chip chip-silver">#2</span>
+									{:else if item.rank === 3}
+										<span class="chip chip-bronze">#3</span>
+									{:else}
+										<span class="rank-plain">#{item.rank}</span>
+									{/if}
+								</td>
+								<td data-label="Player">
+									<span class="player-name">{item.playerName}</span>
+								</td>
+								<td data-label="Clan">
+									{#if item.clanTag}
+										<span class="chip chip-tag">[{item.clanTag}]</span>
+									{:else}
+										<span class="dash">-</span>
+									{/if}
+								</td>
+								<td data-label="MMR">
+									<span class="mmr-val">{item.rating.toFixed(1)}</span>
+								</td>
+								<td data-label="Win Rate">
+									<span class="winrate {winRate >= 50 ? 'winrate-high' : 'winrate-low'}">
+										{winRate.toFixed(1)}%
+									</span>
+								</td>
+								<td data-label="Record">
+									<span>{item.wins} W - {item.losses} L</span>
+								</td>
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+			{/if}
 		</div>
 	</div>
 </div>
@@ -279,6 +382,16 @@
 	.rank-plain {
 		font-weight: 600;
 		opacity: 0.8;
+	}
+
+	.rep-val {
+		color: #ffd700;
+		font-weight: 600;
+	}
+
+	.bag-val {
+		color: #26c6da;
+		font-weight: 500;
 	}
 
 	.dash {

@@ -43,6 +43,17 @@ export interface LeaderboardItem {
 	losses: number;
 }
 
+export interface QuestLeaderboardItem {
+	rank: number;
+	accountId: number;
+	accountName: string;
+	clanTag: string;
+	totalReputation: number;
+	currentBagNumber: number;
+	currentCycle: number;
+	completedBagsCount: number;
+}
+
 export interface ReplayItem {
 	matchID: number;
 	mapName: string;

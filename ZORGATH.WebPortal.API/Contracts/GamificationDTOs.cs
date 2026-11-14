@@ -162,3 +162,15 @@ public sealed record OpenWarEffortBagResponseDTO
     int NewGoldBalance,
     int NewTicketBalance
 );
+
+public sealed record QuestLeaderboardEntryDTO
+(
+    int Rank,
+    int AccountID,
+    string AccountName,
+    string ClanTag,
+    int TotalReputation,
+    int CurrentBagNumber,
+    int CurrentCycle,
+    int CompletedBagsCount
+);
